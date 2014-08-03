@@ -2,8 +2,11 @@ library(XML)
 library(qdap)
 library(rgexf)
 library(stringr)
+library(tnet)
+library(plyr)
 library(network)
 library(GGally)
+library(grid)
 
 gexf = TRUE
 
@@ -207,7 +210,7 @@ cat("Found", nrow(read.csv("data/bills.csv")), "bills",
     nrow(medlem), "MPs", nrow(d), "texts ")
 
 d$n = 1 + str_count(d$links, ";")
-d = subset(d, n > 1 & !grepl("minister", d$authors) & type == "motion")
+d = subset(d, n > 1 & !grepl("minister", d$authors) & type != "resolution")
 
 cat(nrow(d), "cosponsored\n")
 
