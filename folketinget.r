@@ -250,6 +250,8 @@ d$theme[ d$ministry == "Udenrigsministeriet" ] = "Foreign Affairs"
 d$theme[ d$ministry == "Undervisningsministeriet" ] = "Education"
 d$theme[ d$ministry == "Velfærdsministeriet" ] = "Welfare"
 
+# table(unlist(strsplit(d$theme, ",")))
+
 themes = c("Economy|Taxation|Consumer Affairs|Employment",
            "Education|Science",
            "Environment|Energy|Climate|Transport",
