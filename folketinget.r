@@ -20,10 +20,10 @@ colors = c(
   "Liberal Alliance" = "#FDB462",  # light orange
   # "" = "#FFFFB3", # light yellow
   "Det Konservative Folkeparti" = "#377EB8", # blue
-  "Venstre" = "#80B1D3", # light blue
+  "Venstre" = "#984EA3", # purple
   "Dansk Folkeparti" = "#A65628", # brown
   # Greenland and Faroe Islands
-  "Inuit Ataqatigiit" = "#984EA3", # purple
+  "Inuit Ataqatigiit" = "#80B1D3", # light blue
   "Siumut" = "#BEBADA", # light purple
   "Sambandsflokkurin" = "#F781BF", # pink
   "Javnaðarflokkurin" = "#FCCDE5", # light pink
@@ -210,13 +210,56 @@ cat("Found", nrow(read.csv("data/bills.csv")), "bills",
     nrow(medlem), "MPs", nrow(d), "texts ")
 
 d$n = 1 + str_count(d$links, ";")
-d = subset(d, n > 1 & !grepl("minister", d$authors) & type != "resolution")
+d = subset(d, n > 1 & !grepl("minister", d$authors) & type != "resolution") # legislature == ii)
 
 cat(nrow(d), "cosponsored\n")
 
-for(ii in rev(sort(unique(d$legislature)))) {
+d$theme = d$ministry
+d$theme[ d$ministry %in% c("Erhvervs- og Vækstministeriet", "Handels- og Udviklingsministeriet", "Økonomi- og Erhvervsministeriet",  "Økonomi- og Indenrigsministeriet", "Finansministeriet") ] = "Economy"
+d$theme[ d$ministry == "Beskæftigelsesministeriet" ] = "Employment"
+d$theme[ d$ministry == "Europaministeriet" ] = "EU"
+d$theme[ d$ministry == "Forsvarsministeriet" ] = "Defence"
+d$theme[ d$ministry == "Indenrigs- og Socialministeriet" ] = "Interior,Social Affairs"
+d$theme[ d$ministry == "Indenrigs- og Sundhedsministeriet" ] = "Health"
+d$theme[ d$ministry == "Ministeriet for Sundhed og Forebyggelse" ] = "Interior,Health"
+d$theme[ d$ministry == "Justitsministeriet" ] = "Justice"
+d$theme[ d$ministry == "Kirkeministeriet" ] = "Church"
+d$theme[ d$ministry == "Klima- og Energiministeriet" ] = "Climate,Energy"
+d$theme[ d$ministry == "Klima-, Energi- og Bygningsministeriet" ] = "Climate,Energy,Building"
+d$theme[ d$ministry == "Miljøministeriet" ] = "Environment"
+d$theme[ d$ministry == "Kulturministeriet" ] = "Culture" # culture
+d$theme[ d$ministry == "Ministeriet for Børn og Undervisning" ] = "Children,Education" # culture
+d$theme[ d$ministry == "Ministeriet for Børn, Ligestilling, Integration og Sociale Forhold" ] = "Children,Gender Equality,Integration,Social Affairs" # culture
+d$theme[ d$ministry == "Ministeriet for By, Bolig og Landdistrikter" ] = "Housing,Land" # culture
+d$theme[ d$ministry == "Ministeriet for Familie- og Forbrugeranliggender" ] = "Family,Consumer Affairs"
+d$theme[ d$ministry == "Ministeriet for Flygtninge, Indvandrere og Integration" ] = "Refugees,Immigration,Integration"
+d$theme[ d$ministry == "Ministeriet for Fødevarer, Landbrug og Fiskeri" ] = "Food,Agriculture,Fisheries"
+d$theme[ d$ministry == "Ministeriet for Forskning, Innovation og Videregående Uddannelser" ] = "Science,Innovation,Higher Education"
+d$theme[ d$ministry == "Ministeriet for Videnskab, Teknologi og Udvikling" ] = "Science,Technology,Innovation"
+d$theme[ d$ministry == "Ministeriet for Ligestilling" ] = "Gender Equality"
+d$theme[ d$ministry == "Ministeriet for Ligestilling og Kirke" ] = "Church,Gender Equality"
+d$theme[ d$ministry %in% c("Ministerområde", "Statsministeriet", "Folketinget") ] = "Institutional"
+d$theme[ d$ministry == "Skatteministeriet" ] = "Taxation"
+d$theme[ d$ministry == "Socialministeriet" ] = "Social Affairs"
+d$theme[ d$ministry == "Social- og Integrationsministeriet" ] = "Social Security,Integration"
+d$theme[ d$ministry == "Social-, børne- og integrationsministeriet" ] = "Social Affairs,Children,Integration"
+d$theme[ d$ministry %in% c("Transportministeriet", "Trafikministeriet") ] = "Transport" # and roads
+d$theme[ d$ministry == "Transport- og Energiministeriet" ] = "Transport,Energy"
+d$theme[ d$ministry == "Uddannelses- og Forskningsministeriet" ] = "Education,Science"
+d$theme[ d$ministry == "Udenrigsministeriet" ] = "Foreign Affairs"
+d$theme[ d$ministry == "Undervisningsministeriet" ] = "Education"
+d$theme[ d$ministry == "Velfærdsministeriet" ] = "Welfare"
+
+themes = c("Economy|Taxation|Consumer Affairs|Employment",
+           "Education|Science",
+           "Environment|Energy|Climate|Transport",
+           "Justice|Interior", "Immigration|Integration",
+           "Welfare|Social Affairs|Social Security|Family|Children",
+           "Health")
+
+for(ii in themes) { # rev(sort(unique(d$legislature)))
   
-  data = subset(d, legislature == ii) ##  & type != "motion"
+  data = subset(d, grepl(ii, theme)) ##  & type != "motion"
   print(table(data$type, data$year))
   
   rownames(medlem) = gsub("/Folketinget/findMedlem/|\\.aspx", "", medlem$url)
@@ -356,7 +399,8 @@ for(ii in rev(sort(unique(d$legislature)))) {
                                legend.text = element_text(size = 16)) +
                          guides(size = FALSE, color = guide_legend(override.aes = list(alpha = 1/3, size = 6))))
   
-  ggsave(paste0("folketinget", paste0(range(substr(data$year, 1, 4)), collapse = "-"), ".pdf"), width = 12, height = 9)
+  # paste0(range(substr(data$year, 1, 4)), collapse = "-")
+  ggsave(paste0("folketinget", gsub("(\\w)\\|(.*)", "\\1", ii), ".pdf"), width = 12, height = 9)
   
   cat("Maximized modularity:", n %n% "modularity_maximized", "\n")
   
@@ -394,7 +438,7 @@ for(ii in rev(sort(unique(d$legislature)))) {
   relations = na.omit(relations)
   
   nodecolors = lapply(node.att$party, function(x)
-    data.frame(r = rgb[x, 1], g = rgb[x, 2], b = rgb[x, 3], a = .3 ))
+    data.frame(r = rgb[x, 1], g = rgb[x, 2], b = rgb[x, 3], a = .5 ))
   nodecolors = as.matrix(rbind.fill(nodecolors))
   
   net = as.matrix.network.adjacency(n)
@@ -428,7 +472,8 @@ for(ii in rev(sort(unique(d$legislature)))) {
                                 size = round(node.att$degree)),
              # edgesVizAtt = list(size = relations[, 3]),
              defaultedgetype = "undirected", meta = meta,
-             output = paste0("net_", substr(min(data$year), 1, 4), ".gexf"))
+             # substr(min(data$year), 1, 4)
+             output = paste0("net_", gsub("(\\w)\\|(.*)", "\\1", ii), ".gexf"))
   
 }
 
