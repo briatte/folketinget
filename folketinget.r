@@ -252,7 +252,8 @@ d$theme[ d$ministry == "Velfærdsministeriet" ] = "Welfare"
 
 # table(unlist(strsplit(d$theme, ",")))
 
-themes = c("Economy|Taxation|Consumer Affairs|Employment",
+themes = c(2:4, # full legislatures
+           "Economy|Taxation|Consumer Affairs|Employment",
            "Education|Science",
            "Environment|Energy|Climate|Transport",
            "Justice|Interior", "Immigration|Integration",
@@ -261,7 +262,11 @@ themes = c("Economy|Taxation|Consumer Affairs|Employment",
 
 for(ii in themes) { # rev(sort(unique(d$legislature)))
   
-  data = subset(d, grepl(ii, theme)) ##  & type != "motion"
+  if(nchar(ii) > 1)
+    data = subset(d, grepl(ii, theme))
+  else
+    data = subset(d, legislature == ii)
+  
   print(table(data$type, data$year))
   
   rownames(medlem) = gsub("/Folketinget/findMedlem/|\\.aspx", "", medlem$url)
@@ -401,8 +406,12 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
                                legend.text = element_text(size = 16)) +
                          guides(size = FALSE, color = guide_legend(override.aes = list(alpha = 1/3, size = 6))))
   
-  # paste0(range(substr(data$year, 1, 4)), collapse = "-")
-  ggsave(paste0("folketinget", gsub("(\\w)\\|(.*)", "\\1", ii), ".pdf"), width = 12, height = 9)
+  if(nchar(ii) > 1)
+    ggsave(paste0("folketinget", gsub("(\\w)\\|(.*)", "\\1", ii), ".pdf"),
+           width = 12, height = 9)
+  else
+    ggsave(paste0("folketinget", paste0(range(substr(data$year, 1, 4)), collapse = "-"), ".pdf"),
+           width = 12, height = 9)
   
   cat("Maximized modularity:", n %n% "modularity_maximized", "\n")
   
@@ -474,11 +483,12 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
                                 size = round(node.att$degree)),
              # edgesVizAtt = list(size = relations[, 3]),
              defaultedgetype = "undirected", meta = meta,
-             # substr(min(data$year), 1, 4)
-             output = paste0("net_", gsub("(\\w)\\|(.*)", "\\1", ii), ".gexf"))
+             output = ifelse(nchar(ii) > 1,
+                             paste0("net_", gsub("(\\w)\\|(.*)", "\\1", ii), ".gexf"),
+                             paste0("net_", substr(min(data$year), 1, 4), ".gexf")))
+             
+  }
   
-}
-
 }
 
 # kthxbye
