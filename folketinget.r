@@ -79,7 +79,7 @@ for(type in c("Forslag_til_vedtagelse", "Beslutningsforslag", "Lovforslag")) {
       
       if(length(urls)) {
         
-        for(j in c()) { # c()
+        for(j in urls) { # c()
           
           h = try(htmlParse(paste0(root, j)))
           if("try-error" %in% class(h)) {
