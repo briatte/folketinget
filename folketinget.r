@@ -201,6 +201,26 @@ for(k in rev(u)) {
 
 write.csv(medlem, "data/medlem.csv", row.names = FALSE)
 
+medlem$mandate[ medlem$mandate == "" ] = "20111,20141"
+medlem$from = as.numeric(sapply(strsplit(gsub("(\\d{4})(1|2)", "\\1", medlem$mandate), ","), min))
+medlem$to = as.numeric(sapply(strsplit(gsub("(\\d{4})(1|2)", "\\1", medlem$mandate), ","), max))
+medlem$nyears = medlem$to - medlem$from + 1
+
+medlem$female = str_extract(medlem$bio, "(D|d)atter af|(S|s)øn af")
+medlem$female = grepl("(D|d)atter af", medlem$female)
+medlem$female[ !grepl("(D|d)atter af|(S|s)øn af", medlem$bio) ] = NA
+# fill in a few missing values
+medlem$female[ is.na(medlem$female) & 
+                 grepl("^(Anne|Annika|Dorrit|Erika|Fatma|Ida|Karin|Linda|Lise|Lykke|Marlene|Mette|Mie|Sanne|Özlem Sara|Pia|Sofia|Stine)", medlem$name) ] = TRUE
+medlem$female[ is.na(medlem$female) & 
+                 grepl("^(Erling|Eyvind|Hans|Jacob|Jens|Jeppe|Johs\\.|Jørgen|Kamal|Kuupik|Niels|Nikolaj|Per|Peter|Thomas|Uffe)", medlem$name) ] = FALSE
+
+medlem$born = str_extract(medlem$bio, "født [0-9\\.]+ [a-z\\.]+ \\d{4}")
+medlem$born = sapply(str_extract_all(medlem$born, "[0-9]{4}"), length)
+medlem$born[ medlem$born != 1 ] = 0
+medlem$born[ medlem$born == 1 ] = str_extract(medlem$bio[ medlem$born == 1 ], "[0-9]{4}")
+medlem$born[ medlem$born == 0 ] = NA
+
 medlem$party[ is.na(medlem$party) | medlem$party %in% c("", "Indep") ] = "Independent"
 medlem$party[ medlem$party == "Ny Alliance" ] = "Liberal Alliance"
 
@@ -315,12 +335,8 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   n %v% "name" = medlem[ network.vertex.names(n), "name" ]
   n %v% "party" = medlem[ network.vertex.names(n), "party" ]
   n %v% "func" = medlem[ network.vertex.names(n), "func" ]
-  n %v% "from" = as.vector(sapply(medlem[ network.vertex.names(n), "mandate" ], function(x) {
-    min(substr(unlist(strsplit(x, ",")), 1, 4))
-  }))
-  n %v% "to" = as.vector(sapply(medlem[ network.vertex.names(n), "mandate" ], function(x) {
-    max(substr(unlist(strsplit(x, ",")), 1, 4))
-  }))
+  n %v% "from" = medlem[ network.vertex.names(n), "from" ]
+  n %v% "to" = medlem[ network.vertex.names(n), "to" ]
   n %v% "job" = medlem[ network.vertex.names(n), "job" ]
   n %v% "url" = medlem[ network.vertex.names(n), "url" ]
   n %v% "photo" = medlem[ network.vertex.names(n), "photo" ]
