@@ -322,15 +322,6 @@ sigma.parsers.gexf(
         if(parties.indexOf(n.attributes["party"]) != -1)
           colors[ jQuery.inArray(n.attributes["party"], parties) ] = n.color;
       });
-    
-      // caption text (again)
-      var t = "";
-      for (i = 0; i < parties.length; i++) {
-        if(typeof colors[i] != "undefined")
-          t = t + "&nbsp;<span style='color:" +
-            colors[i].replace('0.3)', '1)').replace('0.5)', '1)') + 
-            "'>" + parties[i].replace(new RegExp(' ', 'g'), '&nbsp;') + "</span> ";
-      };
 
       s.graph.edges().forEach(function(e) {
         e.color = e.originalColor;
