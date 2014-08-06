@@ -207,13 +207,14 @@ medlem$from = as.numeric(sapply(strsplit(gsub("(\\d{4})(1|2)", "\\1", medlem$man
 medlem$to = as.numeric(sapply(strsplit(gsub("(\\d{4})(1|2)", "\\1", medlem$mandate), ","), max))
 medlem$nyears = medlem$to - medlem$from + 1
 
-medlem$female = str_extract(medlem$bio, "(D|d)atter af|(S|s)øn af")
-medlem$female = grepl("(D|d)atter af", medlem$female)
-medlem$female[ !grepl("(D|d)atter af|(S|s)øn af", medlem$bio) ] = NA
+medlem$sex = str_extract(medlem$bio, "(D|d)atter af|(S|s)øn af")
+medlem$sex = ifelse(grepl("(D|d)atter af", medlem$sex), "F", "M")
+medlem$sex[ !grepl("(D|d)atter af|(S|s)øn af", medlem$bio) ] = NA
+
 # fill in a few missing values
-medlem$female[ is.na(medlem$female) & 
+medlem$sex[ is.na(medlem$sex) & 
                  grepl("^(Anne|Annika|Dorrit|Erika|Fatma|Ida|Karin|Linda|Lise|Lykke|Marlene|Mette|Mie|Sanne|Özlem Sara|Pia|Sofia|Stine)", medlem$name) ] = TRUE
-medlem$female[ is.na(medlem$female) & 
+medlem$sex[ is.na(medlem$sex) & 
                  grepl("^(Erling|Eyvind|Hans|Jacob|Jens|Jeppe|Johs\\.|Jørgen|Kamal|Kuupik|Niels|Nikolaj|Per|Peter|Thomas|Uffe)", medlem$name) ] = FALSE
 
 medlem$born = str_extract(medlem$bio, "født [0-9\\.]+ [a-z\\.]+ \\d{4}")
@@ -337,6 +338,9 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   
   rownames(medlem) = medlem$name
   n %v% "name" = medlem[ network.vertex.names(n), "name" ]
+  n %v% "born" = medlem[ network.vertex.names(n), "born" ]
+  n %v% "sex" = medlem[ network.vertex.names(n), "sex" ]
+  n %v% "nyears" = medlem[ network.vertex.names(n), "nyears" ]
   n %v% "party" = medlem[ network.vertex.names(n), "party" ]
   n %v% "url" = medlem[ network.vertex.names(n), "url" ]
   n %v% "photo" = medlem[ network.vertex.names(n), "photo" ]
@@ -420,12 +424,10 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
                                legend.text = element_text(size = 16)) +
                          guides(size = FALSE, color = guide_legend(override.aes = list(alpha = 1/3, size = 6))))
   
-  if(nchar(ii) > 1)
-    ggsave(paste0("folketinget", gsub("(\\w)\\|(.*)", "\\1", ii), ".pdf"),
-           width = 12, height = 9)
-  else
-    ggsave(paste0("folketinget", paste0(range(substr(data$year, 1, 4)), collapse = "-"), ".pdf"),
-           width = 12, height = 9)
+  ggsave(ifelse(nchar(ii) > 1,
+                paste0("folketinget", gsub("(\\w)\\|(.*)", "\\1", ii), ".pdf"),
+                paste0("folketinget", paste0(range(substr(data$year, 1, 4)), collapse = "-"), ".pdf")),
+         width = 12, height = 9)
   
   cat("Maximized modularity:", n %n% "modularity_maximized", "\n")
   
@@ -437,50 +439,49 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
     meta = list(creator = "rgexf", description = paste0(mode, " placement"),
                 keywords = "Parliament, Denmark")
     
-    node.att = data.frame(url = n %v% "url",
-                          party = n %v% "party",
-                          county = n %v% "county",
+    node.att = data.frame(party = n %v% "party",
                           distance = round(n %v% "distance", 1),
+                          url = n %v% "url",
                           photo = n %v% "photo",
                           stringsAsFactors = FALSE)
     
     people = data.frame(id = as.numeric(factor(network.vertex.names(n))),
                         label = network.vertex.names(n),
                         stringsAsFactors = FALSE)
-      
-  relations = data.frame(
-    source = as.numeric(factor(n %e% "source", levels = levels(factor(people$label)))),
-    target = as.numeric(factor(n %e% "target", levels = levels(factor(people$label)))),
-    weight = n %e% "weight"
-  )
-  relations = na.omit(relations)
-  
-  nodecolors = lapply(node.att$party, function(x)
-    data.frame(r = rgb[x, 1], g = rgb[x, 2], b = rgb[x, 3], a = .5))
-  nodecolors = as.matrix(rbind.fill(nodecolors))
-  
-  # node placement
-  net = as.matrix.network.adjacency(n)
-  position = do.call(paste0("gplot.layout.", mode), list(net, NULL))
-  position = as.matrix(cbind(position, 1))
-  colnames(position) = c("x", "y", "z")
-  
-  # compress floats
-  position[, "x"] = round(position[, "x"], 2)
-  position[, "y"] = round(position[, "y"], 2)
-  
-  write.gexf(nodes = people,
-             edges = relations[, -3:-4 ],
-             edgesWeight = round(relations[, 3], 3),
-             nodesAtt = node.att,
-             nodesVizAtt = list(position = position, color = nodecolors,
-                                size = round(n %v% "degree", 1)),
-             # edgesVizAtt = list(size = relations[, 4]),
-             defaultedgetype = "undirected", meta = meta,
-             output = ifelse(nchar(ii) > 1,
-                             paste0("net_", gsub("(\\w)\\|(.*)", "\\1", ii), ".gexf"),
-                             paste0("net_", substr(min(data$year), 1, 4), ".gexf")))
-  
+    
+    relations = data.frame(
+      source = as.numeric(factor(n %e% "source", levels = levels(factor(people$label)))),
+      target = as.numeric(factor(n %e% "target", levels = levels(factor(people$label)))),
+      weight = n %e% "weight"
+    )
+    relations = na.omit(relations)
+    
+    nodecolors = lapply(node.att$party, function(x)
+      data.frame(r = rgb[x, 1], g = rgb[x, 2], b = rgb[x, 3], a = .5))
+    nodecolors = as.matrix(rbind.fill(nodecolors))
+    
+    # node placement
+    net = as.matrix.network.adjacency(n)
+    position = do.call(paste0("gplot.layout.", mode), list(net, NULL))
+    position = as.matrix(cbind(position, 1))
+    colnames(position) = c("x", "y", "z")
+    
+    # compress floats
+    position[, "x"] = round(position[, "x"], 2)
+    position[, "y"] = round(position[, "y"], 2)
+    
+    write.gexf(nodes = people,
+               edges = relations[, -3:-4 ],
+               edgesWeight = round(relations[, 3], 3),
+               nodesAtt = node.att,
+               nodesVizAtt = list(position = position, color = nodecolors,
+                                  size = round(n %v% "degree", 1)),
+               # edgesVizAtt = list(size = relations[, 4]),
+               defaultedgetype = "undirected", meta = meta,
+               output = ifelse(nchar(ii) > 1,
+                               paste0("net_", gsub("(\\w)\\|(.*)", "\\1", ii), ".gexf"),
+                               paste0("net_", substr(min(data$year), 1, 4), ".gexf")))
+    
   }
   
 }
