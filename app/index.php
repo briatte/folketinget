@@ -145,7 +145,7 @@
       <ul>
         <li>Data from <a href="http://www.ft.dk/">Folketinget.dk</a> (summer 2014)</li>
       
-        <li>Download&nbsp;&nbsp;<i class="fa fa-file-o"></i>&nbsp;&nbsp;<a href="<?php echo 'net_' . $t; ?>.gexf" title="Download this graph (GEXF, readable with Gephi)">network</a>&nbsp;&nbsp;<i class="fa fa-files-o"></i>&nbsp;&nbsp;<a href="folketinget.zip" title="Download all <?php echo $chamber; ?> graphs (GEXF, readable with Gephi)">full series</a></li>
+        <li>Download&nbsp;&nbsp;<i class="fa fa-file-o"></i>&nbsp;&nbsp;<a href="<?php echo 'net_' . $t; ?>.gexf" title="Download this graph (GEXF, readable with Gephi)">network</a>&nbsp;&nbsp;<i class="fa fa-files-o"></i>&nbsp;&nbsp;<a href="folketinget.zip" title="Download all <?php echo $chamber; ?> graphs (GEXF, readable with Gephi)">full series</a>&nbsp;&nbsp;<i class="fa fa-file-image-o"></i>&nbsp;&nbsp;<a href="plots.html">plots</a></li>
       </ul>
 
       <div id="menu">
@@ -283,28 +283,22 @@ sigma.parsers.gexf(
           e.color = '#333';
       });
 
-      var profile = "<a href='http://www.ft.dk" + e.data.node.attributes['url'] + "' title='Go to profile (Folkeinget, new window)' target='_blank'>";
+      var profile = "<a href='http://www.ft.dk/Folketinget/findMedlem/" + e.data.node.attributes['url'] + ".aspx' title='Go to profile (Folkeinget, new window)' target='_blank'>";
 
       // distance
-      var distance = "around " + Math.round10(e.data.node.attributes['distance'], -1);
+      var distance = "around " + e.data.node.attributes['distance'];
       if(isNaN(e.data.node.attributes['distance']))
         var distance = "impossible to compute (too isolated)";
 
       // transparency
       var rgba = e.data.node.color.replace('0.3)', '0.25)').replace('0.5)', '0.25)');
       
-      if(typeof e.data.node.attributes['from'] == "undefined")
-        var mandate = '';
-      else
-        var mandate = 'in power from ' + e.data.node.attributes['from'] + ' to ' + e.data.node.attributes['to'] + ' ';
-
       document.getElementById('caption').innerHTML = '<p style="background:' + rgba + ';">' + 
         profile + '<img height="120px" src="http://www.ft.dk/Folketinget/findMedlem/' + 
         e.data.node.attributes['photo'] + '" alt="no photo available" /></a> You selected ' + profile + 
-        e.data.node.attributes['label'] + '</a> <span title="Political party affiliation(s): ' + 
+        e.data.node.label + '</a> <span title="Political party affiliation(s): ' + 
         e.data.node.attributes['party'] + '" style="color:' + rgba.replace('0.25)', '1)') + ';">(' + 
-        e.data.node.attributes['party'] + ')</span>, an MP ' + mandate + 
-        ' who had <span title="unweighted Freeman degree">' + s.graph.getNeighborsCount(nodeId) + 
+        e.data.node.attributes['party'] + ')</span>, an MP who had <span title="unweighted Freeman degree">' + s.graph.getNeighborsCount(nodeId) + 
         ' bill cosponsor(s)</span> on this theme.' +
         ' The <a href="http://toreopsahl.com/tnet/weighted-networks/shortest-paths/">mean weighted distance</a>' +
         ' between this MP and all others was&nbsp;' + distance + '.</p>';

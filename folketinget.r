@@ -104,7 +104,8 @@ for(type in c("Forslag_til_vedtagelse", "Beslutningsforslag", "Lovforslag")) {
                            ministry = gsub("Ministerområde (.*)", "\\1", h[ grepl("Ministerområde", h) ]),
                            year = gsub("Samling: ([0-9-]+)(.*)", "\\1", h[ grepl("Samling", h) ]),
                            status = gsub("(.*)Status: (.*)", "\\2", h[ grepl("Samling", h) ]),
-                           authors = ifelse(length(a), a, NA), links = gsub("/Folketinget/findMedlem/|\\.aspx", "", l),
+                           authors = ifelse(length(a), a, NA),
+                           links = gsub("/Folketinget/findMedlem/|\\.aspx", "", l),
                            vote = ifelse(length(v), v, NA),
                            summary = ifelse(length(s), s, NA), url = j,
                            stringsAsFactors = FALSE)
@@ -224,6 +225,8 @@ medlem$born[ medlem$born == 0 ] = NA
 medlem$party[ is.na(medlem$party) | medlem$party %in% c("", "Indep") ] = "Independent"
 medlem$party[ medlem$party == "Ny Alliance" ] = "Liberal Alliance"
 
+medlem$url = gsub("/Folketinget/findMedlem/|\\.aspx", "", medlem$url)
+
 cat("Found", nrow(read.csv("data/bills.csv")), "bills",
     nrow(read.csv("data/motions.csv")), "motions",
     nrow(read.csv("data/resolutions.csv")), "resolutions",
@@ -330,14 +333,11 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   
   n = network(edges[, 1:2 ], directed = FALSE)
   n %n% "title" = paste("Folketinget", paste0(range(substr(data$year, 1, 4)), collapse = "-"))
+  n %n% "n_bills" = nrow(data)
   
   rownames(medlem) = medlem$name
   n %v% "name" = medlem[ network.vertex.names(n), "name" ]
   n %v% "party" = medlem[ network.vertex.names(n), "party" ]
-  n %v% "func" = medlem[ network.vertex.names(n), "func" ]
-  n %v% "from" = medlem[ network.vertex.names(n), "from" ]
-  n %v% "to" = medlem[ network.vertex.names(n), "to" ]
-  n %v% "job" = medlem[ network.vertex.names(n), "job" ]
   n %v% "url" = medlem[ network.vertex.names(n), "url" ]
   n %v% "photo" = medlem[ network.vertex.names(n), "photo" ]
   
@@ -356,7 +356,8 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   E(nn)$weight = edges[, 3]
   
   i = medlem[ V(nn)$name, "party" ]
-  i[ i %in% c("NA") ] = NA # unaffiliateds
+  i[ i %in% c("Independent", "Siumut", "Inuit Ataqatigiit",
+              "Javnaðarflokkurin", "Sambandsflokkurin") ] = NA # unaffiliateds and small regional groups
   
   nn = nn - which(is.na(i))
   i = as.numeric(factor(i[ !is.na(i) ]))
@@ -400,16 +401,13 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   n %v% "clustering" = wdeg$clustering    # local
   n %n% "clustering" = clustering_w(tnet) # global
   
-  party = n %v% "party"
-  names(party) = network.vertex.names(n)
-  
   i = colors[ medlem[ n %e% "source", "party" ] ]
   j = colors[ medlem[ n %e% "target", "party" ] ]
   
   party = as.vector(i)
   party[ i != j ] = "#AAAAAA"
   
-  #   print(table(n %v% "party", exclude = NULL))
+  print(table(n %v% "party", exclude = NULL))
   
   n %v% "size" = as.numeric(cut(n %v% "degree", quantile(n %v% "degree"), include.lowest = TRUE))
   g = suppressWarnings(ggnet(n, size = 0, segment.alpha = 1/2, # mode = "kamadakawai",
@@ -436,27 +434,20 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
     
     rgb = t(col2rgb(colors[ names(colors) %in% as.character(n %v% "party") ]))
     mode = "fruchtermanreingold"
-    meta = list(creator = "rgexf",
-                description = paste0(mode, " placement"),
+    meta = list(creator = "rgexf", description = paste0(mode, " placement"),
                 keywords = "Parliament, Denmark")
     
-    people = data.frame(url = n %v% "url",
-                        name = network.vertex.names(n), 
-                        party = n %v% "party",
-                        from = n %v% "from",
-                        to = n %v% "to",
-                        degree = n %v% "degree",
-                        distance = n %v% "distance",
-                        photo = n %v% "photo",
-                        stringsAsFactors = FALSE)
+    node.att = data.frame(url = n %v% "url",
+                          party = n %v% "party",
+                          county = n %v% "county",
+                          distance = round(n %v% "distance", 1),
+                          photo = n %v% "photo",
+                          stringsAsFactors = FALSE)
     
-  node.att = c("url", "party", "from", "to", "degree", "distance", "photo")
-  node.att = cbind(label = people$name, people[, node.att ])
-  
-  people = data.frame(id = as.numeric(factor(people$name)),
-                      label = people$name,
-                      stringsAsFactors = FALSE)
-  
+    people = data.frame(id = as.numeric(factor(network.vertex.names(n))),
+                        label = network.vertex.names(n),
+                        stringsAsFactors = FALSE)
+      
   relations = data.frame(
     source = as.numeric(factor(n %e% "source", levels = levels(factor(people$label)))),
     target = as.numeric(factor(n %e% "target", levels = levels(factor(people$label)))),
@@ -465,16 +456,12 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   relations = na.omit(relations)
   
   nodecolors = lapply(node.att$party, function(x)
-    data.frame(r = rgb[x, 1], g = rgb[x, 2], b = rgb[x, 3], a = .5 ))
+    data.frame(r = rgb[x, 1], g = rgb[x, 2], b = rgb[x, 3], a = .5))
   nodecolors = as.matrix(rbind.fill(nodecolors))
   
+  # node placement
   net = as.matrix.network.adjacency(n)
-  
-  # placement method (Kamada-Kawai best at separating at reasonable distances)
-  position = paste0("gplot.layout.", mode)
-  if(!exists(position)) stop("Unsupported placement method '", position, "'")
-  
-  position = do.call(position, list(net, NULL))
+  position = do.call(paste0("gplot.layout.", mode), list(net, NULL))
   position = as.matrix(cbind(position, 1))
   colnames(position) = c("x", "y", "z")
   
@@ -483,26 +470,17 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   position[, "y"] = round(position[, "y"], 2)
   
   write.gexf(nodes = people,
-             edges = relations[, -3],
-             edgesWeight = relations[, 3],
-             nodesAtt = data.frame(label = as.character(node.att$label),
-                                   url = node.att$url,
-                                   party = node.att$party,
-                                   from = node.att$from,
-                                   to = node.att$to,
-                                   degree = node.att$degree,
-                                   distance = node.att$distance,
-                                   photo = node.att$photo,
-                                   stringsAsFactors = FALSE),
-             nodesVizAtt = list(position = position,
-                                color = nodecolors,
-                                size = round(node.att$degree)),
-             # edgesVizAtt = list(size = relations[, 3]),
+             edges = relations[, -3:-4 ],
+             edgesWeight = round(relations[, 3], 3),
+             nodesAtt = node.att,
+             nodesVizAtt = list(position = position, color = nodecolors,
+                                size = round(n %v% "degree", 1)),
+             # edgesVizAtt = list(size = relations[, 4]),
              defaultedgetype = "undirected", meta = meta,
              output = ifelse(nchar(ii) > 1,
                              paste0("net_", gsub("(\\w)\\|(.*)", "\\1", ii), ".gexf"),
                              paste0("net_", substr(min(data$year), 1, 4), ".gexf")))
-             
+  
   }
   
 }
