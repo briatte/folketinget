@@ -346,7 +346,7 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
     d = unique(apply(d, 1, function(x) paste0(sort(x), collapse = "_")))
 
     if(length(d))
-      return(data.frame(d, w = length(w)))
+      return(data.frame(d, w = length(w) - 1)) # number of cosponsors
     else
       return(data.frame())
     
