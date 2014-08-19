@@ -5,3 +5,7 @@ R code to scrape Danish legislation (government bills, private bills and resolut
 [![](demo.png)][demo]
 
 [demo]: http://briatte.org/folketinget
+
+# CREDITS
+
+Thanks to [Niels Erik Rasmussen](https://twitter.com/nilleren) and [Thomas Leeper](https://twitter.com/thosjleeper) for useful feedback on a preliminary version.

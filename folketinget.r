@@ -1,3 +1,9 @@
+# hi Denmark
+
+dir.create("data", showWarnings = FALSE)
+dir.create("photos", showWarnings = FALSE)
+dir.create("plots", showWarnings = FALSE)
+
 library(XML)
 library(qdap)
 library(rgexf)
@@ -5,30 +11,30 @@ library(stringr)
 library(tnet)
 library(plyr)
 library(network)
+library(sna)
 library(GGally)
 library(grid)
 
-gexf = TRUE
+plot = TRUE
+gexf = TRUE # themes only
 
 colors = c(
   # leftwing
-  "Enhedslisten" = "#4DAF4A", # green
-  "Socialistisk Folkeparti" = "#FB8072", # light red
-  "Socialdemokratiet" = "#E41A1C", # red
-  "Radikale Venstre" = "#FFFF33", # yellow
-  "Kristendemokraterne" = "#FF7F00", # orange
-  "Liberal Alliance" = "#FDB462",  # light orange
-  # "" = "#FFFFB3", # light yellow
-  "Det Konservative Folkeparti" = "#377EB8", # blue
-  "Venstre" = "#984EA3", # purple
-  "Dansk Folkeparti" = "#A65628", # brown
+  "E" = "#4DAF4A", # Enhedslisten, green
+  "SFP" = "#FB8072", # Socialistisk Folkeparti, light red
+  "SD" = "#E41A1C", # Socialdemokratiet, red
+  "RV" = "#FFFF33", # Radikale Venstre, yellow
+  "KD" = "#FF7F00", # Kristendemokraterne, orange
+  "LA" = "#FDB462",  # Liberal Alliance, light orange
+  "V" = "#984EA3", # purple
+  "KFP" = "#377EB8", # Det Konservative Folkeparti, blue
+  "DFP" = "#A65628", # Dansk Folkeparti, brown
   # Greenland and Faroe Islands
-  "Inuit Ataqatigiit" = "#80B1D3", # light blue
-  "Siumut" = "#BEBADA", # light purple
-  "Sambandsflokkurin" = "#F781BF", # pink
-  "Javnaðarflokkurin" = "#FCCDE5", # light pink
-  # "" = "#444444", # dark grey
-  "Independent" = "#AAAAAA" # light grey
+  "IA" = "#80B1D3", # Inuit Ataqatigiit, light blue
+  "S" = "#BEBADA", # Siumut, light purple
+  "SF" = "#F781BF", # Sambandsflokkurin, pink
+  "JF" = "#FCCDE5", # Javnaðarflokkurin, light pink
+  "IND" = "#AAAAAA" # Independent, light grey
 )
 order = names(colors)
 
@@ -226,17 +232,53 @@ medlem$born[ medlem$born == 0 ] = NA
 medlem$party[ is.na(medlem$party) | medlem$party %in% c("", "Indep") ] = "Independent"
 medlem$party[ medlem$party == "Ny Alliance" ] = "Liberal Alliance"
 
+# download photos
+for(i in which(!is.na(medlem$photo))) {
+  photo = gsub("/Folketinget/findMedlem/(\\w+)\\.aspx", "photos/\\1.jpg", medlem$url[ i ])
+  # special cases
+  if(grepl("Thor Moger Pedersen", medlem$url[ i ]))   photo = "photos/scSFTMP.jpg"
+  if(grepl("Charlotte Sahl-Madsen", medlem$url[ i ])) photo = "photos/scKFCSM.jpg"
+  if(!file.exists(photo) | !file.info(photo)$size) {
+    try(download.file(paste0(root, "/Folketinget/findMedlem/", gsub("\\s", "%20", medlem$photo[ i ])),
+                      photo, mode = "wb", quiet = TRUE), silent = TRUE)
+  }
+  if(!file.exists(photo) | !file.info(photo)$size) {
+    file.remove(photo) # will warn if missing
+    medlem$photo[ i ] = NA
+  } else {
+    medlem$photo[ i ] = gsub("photos/|.jpg$", "", photo)
+  }
+}
+
 medlem$url = gsub("/Folketinget/findMedlem/|\\.aspx", "", medlem$url)
+medlem$url = gsub("\\s", "%20", medlem$url)
+
+medlem$partyname = medlem$party
+medlem$party[ medlem$partyname == "Enhedslisten" ] = "E"
+medlem$party[ medlem$partyname == "Socialistisk Folkeparti" ] = "SFP"
+medlem$party[ medlem$partyname == "Socialdemokratiet" ] = "SD"
+medlem$party[ medlem$partyname == "Radikale Venstre" ] = "RV"
+medlem$party[ medlem$partyname == "Kristendemokraterne" ] = "KD"
+medlem$party[ medlem$partyname == "Liberal Alliance" ] = "LA"
+medlem$party[ medlem$partyname == "Venstre" ] = "V"
+medlem$party[ medlem$partyname == "Det Konservative Folkeparti" ] = "KFP"
+medlem$party[ medlem$partyname == "Dansk Folkeparti" ] = "DFP"
+medlem$party[ medlem$partyname == "Inuit Ataqatigiit" ] = "IA"
+medlem$party[ medlem$partyname == "Siumut" ] = "S"
+medlem$party[ medlem$partyname == "Sambandsflokkurin" ] = "SF"
+medlem$party[ medlem$partyname == "Javnaðarflokkurin" ] = "JF"
+medlem$party[ medlem$partyname == "Independent" ] = "IND"
 
 cat("Found", nrow(read.csv("data/bills.csv")), "bills",
     nrow(read.csv("data/motions.csv")), "motions",
     nrow(read.csv("data/resolutions.csv")), "resolutions",
     nrow(medlem), "MPs", nrow(d), "texts ")
 
-d$n = 1 + str_count(d$links, ";")
-d = subset(d, n > 1 & !grepl("minister", d$authors) & type != "resolution") # legislature == ii)
+d$n_au = 1 + str_count(d$links, ";")
 
-cat(nrow(d), "cosponsored\n")
+d = subset(d, !grepl("minister", d$authors)) # resolutions are included only in legislature graphs
+
+cat(sum(d$n_au > 1), "cosponsored bills\n")
 
 d$theme = d$ministry
 d$theme[ d$ministry %in% c("Erhvervs- og Vækstministeriet", "Handels- og Udviklingsministeriet", "Økonomi- og Erhvervsministeriet",  "Økonomi- og Indenrigsministeriet", "Finansministeriet") ] = "Economy"
@@ -274,9 +316,9 @@ d$theme[ d$ministry == "Udenrigsministeriet" ] = "Foreign Affairs"
 d$theme[ d$ministry == "Undervisningsministeriet" ] = "Education"
 d$theme[ d$ministry == "Velfærdsministeriet" ] = "Welfare"
 
-# table(unlist(strsplit(d$theme, ",")))
+print(table(unlist(strsplit(d$theme, ","))))
 
-themes = c(2:4, # full legislatures
+themes = c(1:4, # full legislatures
            "Economy|Taxation|Consumer Affairs|Employment",
            "Education|Science",
            "Environment|Energy|Climate|Transport",
@@ -287,54 +329,53 @@ themes = c(2:4, # full legislatures
 for(ii in themes) { # rev(sort(unique(d$legislature)))
   
   if(nchar(ii) > 1)
-    data = subset(d, grepl(ii, theme))
+    data = subset(d, grepl(ii, theme) & n_au > 1)
   else
-    data = subset(d, legislature == ii)
+    data = subset(d, legislature == ii & n_au > 1)
   
   print(table(data$type, data$year))
   
   rownames(medlem) = gsub("/Folketinget/findMedlem/|\\.aspx", "", medlem$url)
   
-  edges = lapply(data$links, function(i) {
+  edges = rbind.fill(lapply(data$links, function(i) {
     
-    d = unlist(strsplit(i, ";"))
-    d = medlem[ d, "name" ]
-    d = expand.grid(d, d)
-    d = subset(d, Var1 != Var2)
-    d$uid = apply(d, 1, function(x) paste0(sort(x), collapse = "_"))
-    d = unique(d$uid)
-    if(length(d)) {
-      d = data.frame(i = gsub("(.*)_(.*)", "\\1", d),
-                     j = gsub("(.*)_(.*)", "\\2", d),
-                     w = length(d))
-      return(d)
-    } else {
+    w = unlist(strsplit(i, ";"))
+    d = medlem[ w, "name" ]
+
+    d = subset(expand.grid(d, d), Var1 != Var2)
+    d = unique(apply(d, 1, function(x) paste0(sort(x), collapse = "_")))
+
+    if(length(d))
+      return(data.frame(d, w = length(w)))
+    else
       return(data.frame())
-    }
     
-  })
-  
-  edges = rbind.fill(edges)
-  edges$uid = apply(edges, 1, function(x) paste0(sort(x[ 1:2 ]), collapse = "_"))
-  
+  }))
+    
   # raw edge counts
-  count = table(edges$uid)
+  count = table(edges$d)
   
   # Newman-Fowler weights (weighted quantity of bills cosponsored)
-  edges = aggregate(w ~ uid, function(x) sum(1 / x), data = edges)
+  edges = aggregate(w ~ d, function(x) sum(1 / x), data = edges)
   
   # raw counts
-  edges$count = as.vector(count[ edges$uid ])
+  edges$count = as.vector(count[ edges$d ])
   
-  edges = data.frame(i = gsub("(.*)_(.*)", "\\1", edges$uid),
-                     j = gsub("(.*)_(.*)", "\\2", edges$uid),
+  edges = data.frame(i = gsub("(.*)_(.*)", "\\1", edges$d),
+                     j = gsub("(.*)_(.*)", "\\2", edges$d),
                      w = edges$w, n = edges[, 3])
   
   # network
   
   n = network(edges[, 1:2 ], directed = FALSE)
-  n %n% "title" = paste("Folketinget", paste0(range(substr(data$year, 1, 4)), collapse = "-"))
+  
+  n %n% "title" = paste("Folketing", paste0(range(substr(data$year, 1, 4)), collapse = " to "))
   n %n% "n_bills" = nrow(data)
+  
+  if(nchar(ii) > 1)
+    n %n% "n_sponsors" = table(subset(d, grepl(ii, theme))$n_au)
+  else
+    n %n% "n_sponsors" = table(subset(d, legislature == ii)$n_au)
   
   rownames(medlem) = medlem$name
   n %v% "name" = medlem[ network.vertex.names(n), "name" ]
@@ -342,6 +383,7 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   n %v% "sex" = medlem[ network.vertex.names(n), "sex" ]
   n %v% "nyears" = medlem[ network.vertex.names(n), "nyears" ]
   n %v% "party" = medlem[ network.vertex.names(n), "party" ]
+  n %v% "partyname" = medlem[ network.vertex.names(n), "partyname" ]
   n %v% "url" = medlem[ network.vertex.names(n), "url" ]
   n %v% "photo" = medlem[ network.vertex.names(n), "photo" ]
   
@@ -360,8 +402,7 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   E(nn)$weight = edges[, 3]
   
   i = medlem[ V(nn)$name, "party" ]
-  i[ i %in% c("Independent", "Siumut", "Inuit Ataqatigiit",
-              "Javnaðarflokkurin", "Sambandsflokkurin") ] = NA # unaffiliateds and small regional groups
+  i[ i %in% c("IND", "S", "IA", "JF", "SF") ] = NA # unaffiliateds and regional groups
   
   nn = nn - which(is.na(i))
   i = as.numeric(factor(i[ !is.na(i) ]))
@@ -382,6 +423,8 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   
   n %n% "modularity_maximized" = n %n% "modularity" /
     max(c(n %n% "modularity_walktrap", n %n% "modularity_louvain"))
+  
+  cat("Maximized modularity:", n %n% "modularity_maximized", "\n")
   
   # weighted adjacency matrix to tnet
   tnet = as.tnet(as.sociomatrix(n, attrname = "weight"), type = "weighted one-mode tnet")
@@ -413,33 +456,58 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   
   print(table(n %v% "party", exclude = NULL))
   
-  n %v% "size" = as.numeric(cut(n %v% "degree", quantile(n %v% "degree"), include.lowest = TRUE))
-  g = suppressWarnings(ggnet(n, size = 0, segment.alpha = 1/2, # mode = "kamadakawai",
-                             segment.color = party) +
-                         geom_point(alpha = 1/3, aes(size = n %v% "size", color = n %v% "party")) +
-                         geom_point(alpha = 1/2, aes(size = min(n %v% "size"), color = n %v% "party")) +
-                         scale_size_continuous(range = c(6, 12)) +
-                         scale_color_manual("", values = colors, breaks = order) +
-                         theme(legend.key.size = unit(1, "cm"),
-                               legend.text = element_text(size = 16)) +
-                         guides(size = FALSE, color = guide_legend(override.aes = list(alpha = 1/3, size = 6))))
+  # number of bills cosponsored
+  nb = sapply(n %v% "url", function(x) {
+    sum(unlist(strsplit(data$links, ";")) == x) # ids are varying-length letters
+  })
+  n %v% "n_bills" = as.vector(nb)
   
-  ggsave(ifelse(nchar(ii) > 1,
-                paste0("folketinget", gsub("(\\w)\\|(.*)", "\\1", ii), ".pdf"),
-                paste0("folketinget", paste0(range(substr(data$year, 1, 4)), collapse = "-"), ".pdf")),
-         width = 12, height = 9)
+  if(plot) {
+    
+    n %v% "size" = as.numeric(cut(n %v% "degree", quantile(n %v% "degree"), include.lowest = TRUE))
+    g = suppressWarnings(ggnet(n, size = 0, segment.alpha = 1/2, # mode = "kamadakawai",
+                               segment.color = party) +
+                           geom_point(alpha = 1/3, aes(size = n %v% "size", color = n %v% "party")) +
+                           geom_point(alpha = 1/2, aes(size = min(n %v% "size"), color = n %v% "party")) +
+                           scale_size_continuous(range = c(6, 12)) +
+                           scale_color_manual("", values = colors, breaks = order) +
+                           theme(legend.key.size = unit(1, "cm"),
+                                 legend.text = element_text(size = 16)) +
+                           guides(size = FALSE, color = guide_legend(override.aes = list(alpha = 1/3, size = 6))))
+    
+    ggsave(ifelse(nchar(ii) > 1,
+                  paste0("plots/net_", gsub("(\\w)\\|(.*)", "\\1", ii), ".pdf"),
+                  paste0("plots/net_dk", paste0(range(substr(data$year, 1, 4)), collapse = "-"), ".pdf")),
+           g, width = 12, height = 9)
+    
+    ggsave(ifelse(nchar(ii) > 1,
+                  paste0("plots/net_", gsub("(\\w)\\|(.*)", "\\1", ii), ".jpg"),
+                  paste0("plots/net_dk", paste0(range(substr(data$year, 1, 4)), collapse = "-"), ".jpg")),
+           g + theme(legend.position = "none"),
+           width = 9, height = 9)
+    
+  }
   
-  cat("Maximized modularity:", n %n% "modularity_maximized", "\n")
+  assign(ifelse(nchar(ii) > 1,
+                paste0("net_dk", gsub("(\\w)\\|(.*)", "\\1", ii)),
+                paste0("net_dk", substr(min(data$year), 1, 4))), n)
+
+  if(nchar(ii) == 1) {
+    assign(paste0("edges_dk", substr(ii, 1, 4)), edges)
+    assign(paste0("bills_dk", substr(ii, 1, 4)), data)
+  }
   
-  # gexf
-  if(gexf) {
+  # gexf (themes only)
+  if(gexf & nchar(ii) > 1) {
     
     rgb = t(col2rgb(colors[ names(colors) %in% as.character(n %v% "party") ]))
     mode = "fruchtermanreingold"
-    meta = list(creator = "rgexf", description = paste0(mode, " placement"),
-                keywords = "Parliament, Denmark")
+    meta = list(creator = "rgexf",
+                description = paste(mode, "placement", nrow(data), "bills"),
+                keywords = "parliament, denmark")
     
-    node.att = data.frame(party = n %v% "party",
+    node.att = data.frame(party = n %v% "partyname",
+                          bills = n %v% "n_bills",
                           distance = round(n %v% "distance", 1),
                           url = n %v% "url",
                           photo = n %v% "photo",
@@ -452,38 +520,38 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
     relations = data.frame(
       source = as.numeric(factor(n %e% "source", levels = levels(factor(people$label)))),
       target = as.numeric(factor(n %e% "target", levels = levels(factor(people$label)))),
-      weight = n %e% "weight"
-    )
+      weight = round(n %e% "weight", 2), count = n %e% "count")
     relations = na.omit(relations)
     
-    nodecolors = lapply(node.att$party, function(x)
+    # check all weights are positive after rounding
+    stopifnot(all(relations$weight > 0))
+    
+    nodecolors = lapply(n %v% "party", function(x)
       data.frame(r = rgb[x, 1], g = rgb[x, 2], b = rgb[x, 3], a = .5))
     nodecolors = as.matrix(rbind.fill(nodecolors))
     
     # node placement
-    net = as.matrix.network.adjacency(n)
-    position = do.call(paste0("gplot.layout.", mode), list(net, NULL))
-    position = as.matrix(cbind(position, 1))
+    position = do.call(paste0("gplot.layout.", mode),
+                       list(as.matrix.network.adjacency(n), NULL))
+    position = as.matrix(cbind(round(position, 1), 1))
     colnames(position) = c("x", "y", "z")
     
-    # compress floats
-    position[, "x"] = round(position[, "x"], 2)
-    position[, "y"] = round(position[, "y"], 2)
-    
-    write.gexf(nodes = people,
-               edges = relations[, -3:-4 ],
-               edgesWeight = round(relations[, 3], 3),
-               nodesAtt = node.att,
+    # save with compressed floats
+    write.gexf(nodes = people, nodesAtt = node.att,
+               edges = relations[, 1:2 ], edgesWeight = relations[, 3],
                nodesVizAtt = list(position = position, color = nodecolors,
                                   size = round(n %v% "degree", 1)),
                # edgesVizAtt = list(size = relations[, 4]),
                defaultedgetype = "undirected", meta = meta,
-               output = ifelse(nchar(ii) > 1,
-                               paste0("net_", gsub("(\\w)\\|(.*)", "\\1", ii), ".gexf"),
-                               paste0("net_", substr(min(data$year), 1, 4), ".gexf")))
+               output = paste0("net_", gsub("(\\w)\\|(.*)", "\\1", ii), ".gexf"))
     
   }
   
 }
+
+save(list = ls(pattern = "^(net|edges|bills)_dk\\d{4}$"), file = "data/net_dk.rda")
+
+if(gexf)
+  zip("net_dk.zip", dir(pattern = "^net_\\w+\\.gexf$"))
 
 # kthxbye
