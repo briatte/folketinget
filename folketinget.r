@@ -39,7 +39,7 @@ colors = c(
 order = names(colors)
 
 root = "http://www.ft.dk"
-years = rev(sort(c(paste0(2013:2004, 1), paste0(c(2004, 2007, 2010), 2))))
+years = rev(sort(c(paste0(2014:2004, 1), paste0(c(2004, 2007, 2010), 2))))
 
 for(type in c("Forslag_til_vedtagelse", "Beslutningsforslag", "Lovforslag")) {
   
