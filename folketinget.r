@@ -493,8 +493,8 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
                 paste0("net_dk", substr(min(data$year), 1, 4))), n)
 
   if(nchar(ii) == 1) {
-    assign(paste0("edges_dk", substr(ii, 1, 4)), edges)
-    assign(paste0("bills_dk", substr(ii, 1, 4)), data)
+    assign(paste0("edges_dk", substr(min(data$year), 1, 4)), edges)
+    assign(paste0("bills_dk", substr(min(data$year), 1, 4)), data)
   }
   
   # gexf (themes only)
