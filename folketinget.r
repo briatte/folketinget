@@ -19,22 +19,24 @@ plot = TRUE
 gexf = TRUE # themes only
 
 colors = c(
-  # leftwing
-  "E" = "#4DAF4A", # Enhedslisten, green
-  "SFP" = "#FB8072", # Socialistisk Folkeparti, light red
-  "SD" = "#E41A1C", # Socialdemokratiet, red
-  "RV" = "#FFFF33", # Radikale Venstre, yellow
-  "KD" = "#FF7F00", # Kristendemokraterne, orange
-  "LA" = "#FDB462",  # Liberal Alliance, light orange
-  "V" = "#984EA3", # purple
-  "KFP" = "#377EB8", # Det Konservative Folkeparti, blue
-  "DFP" = "#A65628", # Dansk Folkeparti, brown
-  # Greenland and Faroe Islands
-  "IA" = "#80B1D3", # Inuit Ataqatigiit, light blue
-  "S" = "#BEBADA", # Siumut, light purple
-  "SF" = "#F781BF", # Sambandsflokkurin, pink
-  "JF" = "#FCCDE5", # Javnaðarflokkurin, light pink
-  "IND" = "#AAAAAA" # Independent, light grey
+  # Left
+  "E"   = "#4DAF4A", # Ø   -- Enhedslisten                -- green
+  "SFP" = "#67001F", # F   -- Socialistisk Folkeparti     -- dark red
+  "SD"  = "#E41A1C", # A   -- Socialdemokratiet           -- red
+  # Centre
+  "RV" =  "#F781BF", # B   -- Det Radikale Venstre        -- pink
+  "LA"  = "#FDB462", # I   -- Liberal Alliance            -- light orange
+  "KD"  = "#FF7F00", # K   -- Kristendemokraterne         -- orange
+  # Right
+  "V"   = "#1B9E77", # V   -- Venstre                     -- teal
+  "KFP" = "#B3DE69", # C   -- Det Konservative Folkeparti -- light green
+  "DFP" = "#FFFF33", # Z/O -- Dansk Folkeparti            -- yellow (Z color)
+  # Other
+  "IA"  = "#80B1D3", #     -- Inuit Ataqatigiit           -- light blue
+  "S"   = "#FB8072", #     -- Siumut                      -- light red
+  "JF"  = "#A65628", #     -- Javnaðarflokkurin           -- brown
+  "SF"  = "#377EB8", #     -- Sambandsflokkurin           -- blue
+  "IND" = "#AAAAAA"  #     -- Independent, light grey
 )
 order = names(colors)
 
@@ -402,7 +404,7 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   E(nn)$weight = edges[, 3]
   
   i = medlem[ V(nn)$name, "party" ]
-  i[ i %in% c("IND", "S", "IA", "JF", "SF") ] = NA # unaffiliateds and regional groups
+  i[ i %in% c("IND", "S", "IA", "JF", "SF") ] = NA # unaffiliateds and regionalists
   
   nn = nn - which(is.na(i))
   i = as.numeric(factor(i[ !is.na(i) ]))
@@ -478,13 +480,12 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
     ggsave(ifelse(nchar(ii) > 1,
                   paste0("plots/net_", gsub("(\\w)\\|(.*)", "\\1", ii), ".pdf"),
                   paste0("plots/net_dk", paste0(range(substr(data$year, 1, 4)), collapse = "-"), ".pdf")),
-           g, width = 12, height = 9)
+           g + theme(legend.key = element_blank()), width = 10, height = 9)
     
     ggsave(ifelse(nchar(ii) > 1,
                   paste0("plots/net_", gsub("(\\w)\\|(.*)", "\\1", ii), ".jpg"),
                   paste0("plots/net_dk", paste0(range(substr(data$year, 1, 4)), collapse = "-"), ".jpg")),
-           g + theme(legend.position = "none"),
-           width = 9, height = 9)
+           g + theme(legend.position = "none"), width = 9, height = 9)
     
   }
   
