@@ -21,10 +21,10 @@ gexf = TRUE # themes only
 colors = c(
   # Left
   "E"   = "#4DAF4A", # Ø   -- Enhedslisten                -- green
-  "SFP" = "#67001F", # F   -- Socialistisk Folkeparti     -- dark red
-  "SD"  = "#E41A1C", # A   -- Socialdemokratiet           -- red
+  "SFP" = "#E41A1C", # F   -- Socialistisk Folkeparti     -- red
+  "SD"  = "#F781BF", # A   -- Socialdemokratiet           -- pink
   # Centre
-  "RV" =  "#F781BF", # B   -- Det Radikale Venstre        -- pink
+  "RV" =  "#C51B7D", # B   -- Det Radikale Venstre        -- magenta
   "LA"  = "#FDB462", # I   -- Liberal Alliance            -- light orange
   "KD"  = "#FF7F00", # K   -- Kristendemokraterne         -- orange
   # Right
