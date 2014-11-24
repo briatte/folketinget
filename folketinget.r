@@ -480,12 +480,14 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
     ggsave(ifelse(nchar(ii) > 1,
                   paste0("plots/net_", gsub("(\\w)\\|(.*)", "\\1", ii), ".pdf"),
                   paste0("plots/net_dk", paste0(range(substr(data$year, 1, 4)), collapse = "-"), ".pdf")),
-           g + theme(legend.key = element_blank()), width = 10, height = 9)
+           g + theme(legend.key = element_blank()),
+           width = 10, height = 9)
     
     ggsave(ifelse(nchar(ii) > 1,
                   paste0("plots/net_", gsub("(\\w)\\|(.*)", "\\1", ii), ".jpg"),
                   paste0("plots/net_dk", paste0(range(substr(data$year, 1, 4)), collapse = "-"), ".jpg")),
-           g + theme(legend.position = "none"), width = 9, height = 9)
+           g + theme(legend.position = "none"),
+           width = 9, height = 9, dpi = 150)
     
   }
   
