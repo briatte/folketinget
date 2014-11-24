@@ -28,7 +28,7 @@ colors = c(
   "LA"  = "#FDB462", # I   -- Liberal Alliance            -- light orange
   "KD"  = "#FF7F00", # K   -- Kristendemokraterne         -- orange
   # Right
-  "V"   = "#1B9E77", # V   -- Venstre                     -- teal
+  "V"   = "#01665E", # V   -- Venstre                     -- dark green/teal
   "KFP" = "#B3DE69", # C   -- Det Konservative Folkeparti -- light green
   "DFP" = "#FFFF33", # Z/O -- Dansk Folkeparti            -- yellow (Z color)
   # Other
