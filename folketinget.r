@@ -221,9 +221,9 @@ medlem$sex[ !grepl("(D|d)atter af|(S|s)øn af", medlem$bio) ] = NA
 
 # fill in a few missing values
 medlem$sex[ is.na(medlem$sex) & 
-                 grepl("^(Anne|Annika|Dorrit|Erika|Fatma|Ida|Karin|Linda|Lise|Lykke|Marlene|Mette|Mie|Sanne|Özlem Sara|Pia|Sofia|Stine)", medlem$name) ] = TRUE
+                 grepl("^(Anne|Annika|Dorrit|Erika|Fatma|Ida|Karin|Linda|Lise|Lykke|Marlene|Mette|Mie|Sanne|Özlem Sara|Pia|Sofia|Stine)", medlem$name) ] = "F"
 medlem$sex[ is.na(medlem$sex) & 
-                 grepl("^(Erling|Eyvind|Hans|Jacob|Jens|Jeppe|Johs\\.|Jørgen|Kamal|Kuupik|Niels|Nikolaj|Per|Peter|Thomas|Uffe)", medlem$name) ] = FALSE
+                 grepl("^(Erling|Eyvind|Hans|Jacob|Jens|Jeppe|Johs\\.|Jørgen|Kamal|Kuupik|Niels|Nikolaj|Per|Peter|Thomas|Uffe)", medlem$name) ] = "M"
 
 medlem$born = str_extract(medlem$bio, "født [0-9\\.]+ [a-z\\.]+ \\d{4}")
 medlem$born = sapply(str_extract_all(medlem$born, "[0-9]{4}"), length)
