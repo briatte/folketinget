@@ -98,7 +98,7 @@ for(type in c("Forslag_til_vedtagelse", "Beslutningsforslag", "Lovforslag")) {
   
 }
 
-d = rbind.fill(lapply(dir("data", pattern = "^(bills|motions|resolutions)\\d+.csv", full.names = TRUE),
+d = rbind_all(lapply(dir("data", pattern = "^(bills|motions|resolutions)\\d+.csv", full.names = TRUE),
                       read.csv, stringsAsFactors = FALSE))
 
 d$legislature = legislature[ d$year ]
