@@ -30,9 +30,9 @@ scores = c(
   "V"   = 7.3,
   "DFP" = 9,
   # Faroe Islands and Greenland
-  "IA"  = 1.2,
-  "S"   = 3.1,
-  "JF"  = 3.4,
+  "IA"  = 1.3,
+  "S"   = 3.3,
+  "JF"  = 3.3,
   "SF"  = 7.4,
   "IND" = Inf
 )
