@@ -178,12 +178,15 @@ for(k in rev(u)) {
   
 }
 
+# remove two strictly ministerial sponsors
+s = subset(s, func != "exmin")
+
 # special constituencies
 s$constituency[ grepl("Grønland", s$constituency) ] = "Grønland"
 s$constituency[ grepl("Færøerne", s$constituency) ] = "Færøerne"
 
-# remove two strictly ministerial sponsors
-s = subset(s, func != "exmin")
+# convert to Wikipedia Dansk handles
+s$constituency = gsub("\\s", "_", s$constituency)
 
 write.csv(s, sponsors, row.names = FALSE)
 

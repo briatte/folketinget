@@ -39,11 +39,14 @@ The data contains three types of legislative items: "motions" (, "B"), "bills" (
 - `func` -- political function(s), e.g. "member,exsted,exmin"
 - `party` -- political party, abbreviated
 - `partyname` -- political party, full name
+- `constituency` -- constituency, stored as the string to its Wikipedia Dansk entry
 - `mandate` -- semicolon-separated mandate years, used to compute the `nyears` seniority variable
 - `job` -- occupation
 - `url` -- a unique identifier almost always composed of just uppercase letters
 - `photo` -- photo URL, shortened to its unique identifier (identical to `url` or missing)
 - `bio` -- short sponsor biography
+
+Note -- due to how missing sponsors are handled, the version of `sponsors.csv` that is saved to the `data` folder contains an intermediary version of the sponsors data. To retrieve the finalized dataset with the variables listed above, export the sponsors object `s` after running `data.r` in full.
 
 # CREDITS
 
