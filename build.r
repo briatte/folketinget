@@ -11,7 +11,7 @@ themes = c(2:4, # full legislatures, excluding the first (very incomplete) one
 
 for(ii in themes) { # rev(sort(unique(d$legislature)))
   
-  cat(ifelse(nchar(ii) > 1, ii, c("1" = "2001-2004",
+  cat(ifelse(nchar(ii) > 1, ii, c("1" = "2001-2004", # not used, missing 3 years
                                   "2" = "2005-2007", 
                                   "3" = "2007-2011",
                                   "4" = "2011-2015")[ ii ]))
@@ -26,15 +26,15 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   cat(":", nrow(data), "cosponsored documents, ")
   
   # check for missing sponsors
-  a = unlist(strsplit(data$links, ";"))
-  u = na.omit(u[ !u %in% medlem$url ])
+  u = unlist(strsplit(data$links, ";"))
+  u = na.omit(u[ !u %in% s$url ])
   if(length(u)) {
     cat("Missing", length(u), "sponsors:")
     print(table(u))
   }
   
   # reset row names (changed when setting vertex attributes)
-  rownames(medlem) = medlem$url
+  rownames(s) = s$url
   
   #
   # directed edge list
@@ -43,7 +43,7 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   edges = rbind_all(lapply(data$links, function(i) {
     
     w = unlist(strsplit(i, ";"))
-    d = medlem[ w, "name" ]
+    d = s[ w, "name" ]
     
     d = expand.grid(i = d, j = d[ 1 ], stringsAsFactors = FALSE)
     
@@ -118,28 +118,29 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   
   cat(network.size(n), "nodes\n")
   
-  rownames(medlem) = medlem$name
+  rownames(s) = s$name
   
-  n %v% "born" = as.numeric(medlem[ network.vertex.names(n), "born" ])
-  n %v% "sex" = as.character(medlem[ network.vertex.names(n), "sex" ])
+  n %v% "born" = as.numeric(s[ network.vertex.names(n), "born" ])
+  n %v% "sex" = as.character(s[ network.vertex.names(n), "sex" ])
   
   if(nchar(ii) == 1) {
     
-    medlem$nyears = sapply(medlem$mandate, function(x) {
+    s$nyears = sapply(s$mandate, function(x) {
       sum(unlist(strsplit(x, ";")) <= 
             min(substr(names(legislature)[ legislature == ii ], 1, 4)))
     })
     
-    n %v% "nyears" = medlem[ network.vertex.names(n), "nyears" ]
+    n %v% "nyears" = s[ network.vertex.names(n), "nyears" ]
     # print(table(n %v% "nyears"))
     
   }
   
-  n %v% "party" = as.character(medlem[ network.vertex.names(n), "party" ])
-  n %v% "partyname" = as.character(medlem[ network.vertex.names(n), "partyname" ])
+  n %v% "party" = as.character(s[ network.vertex.names(n), "party" ])
+  n %v% "partyname" = as.character(s[ network.vertex.names(n), "partyname" ])
   n %v% "lr" = as.numeric(scores[ n %v% "party" ])
-  n %v% "url" = as.character(medlem[ network.vertex.names(n), "url" ])
-  n %v% "photo" = as.character(medlem[ network.vertex.names(n), "photo" ])
+  n %v% "url" = as.character(s[ network.vertex.names(n), "url" ])
+  n %v% "photo" = as.character(s[ network.vertex.names(n), "photo" ])
+  n %v% "constituency" = as.character(s[ network.vertex.names(n), "constituency" ])
   
   set.edge.attribute(n, "source", as.character(edges[, 1])) # cosponsor
   set.edge.attribute(n, "target", as.character(edges[, 2])) # first author
@@ -172,8 +173,8 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
     ggnet_save(n, file = ifelse(nchar(ii) > 1,
                                 paste0("plots/net_dk", gsub("(\\w)\\|(.*)", "\\1", ii)),
                                 paste0("plots/net_dk", paste0(range(substr(data$year, 1, 4)), collapse = "-"))),
-               i = colors[ medlem[ n %e% "source", "party" ] ],
-               j = colors[ medlem[ n %e% "target", "party" ] ],
+               i = colors[ s[ n %e% "source", "party" ] ],
+               j = colors[ s[ n %e% "target", "party" ] ],
                q, colors, order)
     
   }
@@ -196,7 +197,7 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   
   if(gexf & nchar(ii) > 1)
     get_gexf(paste0("net_dk", gsub("(\\w)\\|(.*)", "\\1", ii)),
-             n, meta, mode, colors)
+             n, meta, mode, colors, extra = "constituency")
   
 }
 

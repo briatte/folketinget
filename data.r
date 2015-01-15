@@ -3,6 +3,8 @@ legislature = c("2004-05" = 1, "2005-06" = 2, "2006-07" = 2,
                 "2007-08" = 3, "2008-09" = 3, "2009-10" = 3, "2010-11" = 3,
                 "2011-12" = 4, "2012-13" = 4, "2013-14" = 4, "2014-15" = 4)
 
+sponsors = "data/sponsors.csv"
+
 for(type in c("Forslag_til_vedtagelse", "Beslutningsforslag", "Lovforslag")) {
   
   data = data.frame()
@@ -12,7 +14,7 @@ for(type in c("Forslag_til_vedtagelse", "Beslutningsforslag", "Lovforslag")) {
   
   for(i in rev(sort(c(paste0(2014:2004, 1), paste0(c(2004, 2007, 2010), 2))))) {
     
-    file = paste0("data/", name, i, ".html")
+    file = paste0("raw/", name, i, ".html")
     
     if(!file.exists(file) & name == "resolutions")
       download.file(paste0("http://www.ft.dk/Dokumenter/Vis_efter_type/", type, ".aspx?session=", i, "&ministerArea=-1&proposer=&caseStatus=-1&startDate=&endDate=&dateRelatedActivity=&sortColumn=&sortOrder=&startRecord=&numberOfRecords=500&totalNumberOfRecords=#dok"),
@@ -30,7 +32,7 @@ for(type in c("Forslag_til_vedtagelse", "Beslutningsforslag", "Lovforslag")) {
       
       data = rbind(data, readHTMLTable(h, stringsAsFactors = FALSE)[[1]])
       
-      file = gsub("html$", "csv", file)
+      file = gsub("raw/", "data/", gsub("html$", "csv", file))
       if(!file.exists(file)) {
         
         links = data.frame()
@@ -47,7 +49,7 @@ for(type in c("Forslag_til_vedtagelse", "Beslutningsforslag", "Lovforslag")) {
       
       if(length(urls)) {
         
-        for(j in urls) { # c()
+        for(j in urls) {
           
           h = try(htmlParse(paste0(root, j)))
           if("try-error" %in% class(h)) {
@@ -115,9 +117,9 @@ print(table(d$type, d$legislature, exclude = NULL))
 u = unlist(strsplit(d$links, ";"))
 u = paste0("/Folketinget/findMedlem/", unique(na.omit(u)), ".aspx")
 
-if(!file.exists("data/medlem.csv")) {
+if(!file.exists(sponsors)) {
   
-  medlem = data.frame()
+  s = data.frame()
   l = sapply(1:4, function(j) {
     h = htmlParse(paste0("http://www.ft.dk/Folketinget/searchResults.aspx?letter=ALLE&pageSize=50&pageNr=",
                          j, "#search"))
@@ -128,117 +130,138 @@ if(!file.exists("data/medlem.csv")) {
   
 } else {
   
-  medlem = read.csv("data/medlem.csv", stringsAsFactors = FALSE)
-  u = u[ !u %in% medlem$url ]
+  s = read.csv(sponsors, stringsAsFactors = FALSE)
+  u = u[ !u %in% s$url ]
   cat("Finding", length(u), "missing sponsors\n")
   
 }
 
+u = gsub("\\s", "%20", u)
+
 for(k in rev(u)) {
   
-  h = try(htmlParse(paste0(root, k)))
-  if("try-error" %in% class(h)) {
+  cat(sprintf("%3.0f", which(u == k)))
+  file = gsub("aspx$", "html", gsub("/Folketinget/findMedlem/", "raw/mp-", k))
+  if(!file.exists(file))
+    try(download.file(paste0(root, k), file, mode = "wb", quiet = TRUE), silent = TRUE)
+  
+  if(!file.info(file)$size) {
     
-    cat(" failed", paste0(root, k), "\n")
+    cat(": failed", paste0(root, k), "\n")
+    file.remove(file)
     
   } else {
     
-    cat(sprintf("%3.0f", which(u == k)),
+    h = htmlParse(file)
+    cat(":", file, ":",
         gsub("Folketinget - ", "",
              str_clean(xpathSApply(h, "//title", xmlValue))), "\n")
     
+    constit = xpathSApply(h, "//strong[text()='Medlemsperiode']/..", xmlValue)
+    constit = gsub("(.*)\\si\\s(.*)(\\s(Amts|Stor)kreds)(.*)", "\\2\\3", constit)
+    
     img = xpathSApply(h, "//img[contains(@src, '/media/')]/@src")
-    medlem = rbind(medlem,
-                   data.frame(
-                     name = xpathSApply(h, "//meta[@name='Fullname']/@content"),
-                     func = xpathSApply(h, "//meta[@name='Function']/@content"),
-                     party = xpathSApply(h, "//meta[@name='Party']/@content"),
-                     mandate = xpathSApply(h, "//meta[@name='MfPeriod']/@content"),
-                     job = xpathSApply(h, "//div[contains(@class, 'person')]/p[2]/strong", xmlValue),
-                     photo = ifelse(length(img), img, NA),
-                     url = k,
-                     bio = xpathSApply(h, "//div[contains(@class, 'tabContent')]/p[1]", xmlValue),
-                     stringsAsFactors = FALSE))
+    s = rbind(s,
+              data.frame(file,
+                         name = xpathSApply(h, "//meta[@name='Fullname']/@content"),
+                         func = xpathSApply(h, "//meta[@name='Function']/@content"),
+                         party = xpathSApply(h, "//meta[@name='Party']/@content"),
+                         mandate = xpathSApply(h, "//meta[@name='MfPeriod']/@content"),
+                         constituency = ifelse(length(constit), constit, NA),
+                         job = xpathSApply(h, "//div[contains(@class, 'person')]/p[2]/strong", xmlValue),
+                         photo = ifelse(length(img), img, NA),
+                         url = k,
+                         bio = xpathSApply(h, "//div[contains(@class, 'tabContent')]/p[1]", xmlValue),
+                         stringsAsFactors = FALSE))
     
   }
   
 }
 
-write.csv(medlem, "data/medlem.csv", row.names = FALSE)
+# special constituencies
+s$constituency[ grepl("Grønland", s$constituency) ] = "Grønland"
+s$constituency[ grepl("Færøerne", s$constituency) ] = "Færøerne"
 
-medlem$mandate = sapply(medlem$mandate, function(x) {
+# remove two strictly ministerial sponsors
+s = subset(s, func != "exmin")
+
+write.csv(s, sponsors, row.names = FALSE)
+
+s$mandate = sapply(s$mandate, function(x) {
   x = str_extract_all(x, "[0-9]{4}")
   paste0(unique(unlist(x)), collapse = ";")
 })
 
-medlem$mandate[ medlem$mandate == "" ] = "2011;2012;2013;2014"
+s$mandate[ s$mandate == "" ] = "2011;2012;2013;2014"
 
 # old method (approximate)
-# medlem$from = as.numeric(sapply(strsplit(gsub("(\\d{4})(1|2)", "\\1", medlem$mandate), ","), min))
-# medlem$to = as.numeric(sapply(strsplit(gsub("(\\d{4})(1|2)", "\\1", medlem$mandate), ","), max))
-# medlem$nyears = medlem$to - medlem$from + 1
+# s$from = as.numeric(sapply(strsplit(gsub("(\\d{4})(1|2)", "\\1", s$mandate), ","), min))
+# s$to = as.numeric(sapply(strsplit(gsub("(\\d{4})(1|2)", "\\1", s$mandate), ","), max))
+# s$nyears = s$to - s$from + 1
 
-medlem$sex = str_extract(medlem$bio, "(D|d)atter af|(S|s)øn af")
-medlem$sex = ifelse(grepl("(D|d)atter af", medlem$sex), "F", "M")
-medlem$sex[ !grepl("(D|d)atter af|(S|s)øn af", medlem$bio) ] = NA
+s$sex = str_extract(s$bio, "(D|d)atter af|(S|s)øn af")
+s$sex = ifelse(grepl("(D|d)atter af", s$sex), "F", "M")
+s$sex[ !grepl("(D|d)atter af|(S|s)øn af", s$bio) ] = NA
 
 # fill in a few missing values
-medlem$sex[ is.na(medlem$sex) & 
-              grepl("^(Anne|Annika|Dorrit|Erika|Fatma|Ida|Karin|Linda|Lise|Lykke|Marlene|Mette|Mie|Sanne|Özlem Sara|Pia|Sofia|Stine)", medlem$name) ] = "F"
-medlem$sex[ is.na(medlem$sex) & 
-              grepl("^(Erling|Eyvind|Hans|Jacob|Jens|Jeppe|Johs\\.|Jørgen|Kamal|Kuupik|Niels|Nikolaj|Per|Peter|Thomas|Uffe)", medlem$name) ] = "M"
+s$sex[ is.na(s$sex) & 
+              grepl("^(Anne|Annika|Dorrit|Erika|Fatma|Ida|Karin|Linda|Lise|Lykke|Marlene|Mette|Mie|Sanne|Özlem Sara|Pia|Sofia|Stine)", s$name) ] = "F"
+s$sex[ is.na(s$sex) & 
+              grepl("^(Erling|Eyvind|Hans|Jacob|Jens|Jeppe|Johs\\.|Jørgen|Kamal|Kuupik|Niels|Nikolaj|Per|Peter|Thomas|Uffe)", s$name) ] = "M"
 
-medlem$born = str_extract(medlem$bio, "født [0-9\\.]+ [a-z\\.]+ \\d{4}")
-medlem$born = sapply(str_extract_all(medlem$born, "[0-9]{4}"), length)
-medlem$born[ medlem$born != 1 ] = 0
-medlem$born[ medlem$born == 1 ] = str_extract(medlem$bio[ medlem$born == 1 ], "[0-9]{4}")
-medlem$born[ medlem$born == 0 ] = NA
+s$born = str_extract(s$bio, "født [0-9\\.]+ [a-z\\.]+ \\d{4}")
+s$born = sapply(str_extract_all(s$born, "[0-9]{4}"), length)
+s$born[ s$born != 1 ] = 0
+s$born[ s$born == 1 ] = str_extract(s$bio[ s$born == 1 ], "[0-9]{4}")
+s$born[ s$born == 0 ] = NA
 
-medlem$party[ is.na(medlem$party) | medlem$party %in% c("", "Indep") ] = "Independent"
-medlem$party[ medlem$party == "Ny Alliance" ] = "Liberal Alliance"
+s$party[ is.na(s$party) | s$party %in% c("", "Indep") ] = "Independent"
+s$party[ s$party == "Ny Alliance" ] = "Liberal Alliance"
 
 # download photos
-for(i in which(!is.na(medlem$photo))) {
-  photo = gsub("/Folketinget/findMedlem/(\\w+)\\.aspx", "photos/\\1.jpg", medlem$url[ i ])
+for(i in which(!is.na(s$photo))) {
+  photo = gsub("/Folketinget/findMedlem/(\\w+)\\.aspx", "photos/\\1.jpg", s$url[ i ])
   # special cases
-  if(grepl("Thor Moger Pedersen", medlem$url[ i ]))   photo = "photos/scSFTMP.jpg"
-  if(grepl("Charlotte Sahl-Madsen", medlem$url[ i ])) photo = "photos/scKFCSM.jpg"
+  if(grepl("Thor Moger Pedersen", s$url[ i ]))   photo = "photos/scSFTMP.jpg"
+  if(grepl("Charlotte Sahl-Madsen", s$url[ i ])) photo = "photos/scKFCSM.jpg"
   if(!file.exists(photo) | !file.info(photo)$size) {
-    try(download.file(paste0(root, "/Folketinget/findMedlem/", gsub("\\s", "%20", medlem$photo[ i ])),
+    try(download.file(paste0(root, "/Folketinget/findMedlem/", gsub("\\s", "%20", s$photo[ i ])),
                       photo, mode = "wb", quiet = TRUE), silent = TRUE)
   }
   if(!file.exists(photo) | !file.info(photo)$size) {
     file.remove(photo) # will warn if missing
-    medlem$photo[ i ] = NA
+    s$photo[ i ] = NA
   } else {
-    medlem$photo[ i ] = gsub("photos/|.jpg$", "", photo)
+    s$photo[ i ] = gsub("photos/|.jpg$", "", photo)
   }
 }
 
-medlem$url = gsub("/Folketinget/findMedlem/|\\.aspx", "", medlem$url)
-medlem$url = gsub("\\s", "%20", medlem$url)
-rownames(medlem) = medlem$url
+s$url = gsub("/Folketinget/findMedlem/|\\.aspx", "", s$url)
+s$url = gsub("\\s", "%20", s$url)
+rownames(s) = s$url
 
-medlem$partyname = medlem$party
-medlem$party[ medlem$partyname == "Enhedslisten" ] = "E"
-medlem$party[ medlem$partyname == "Socialistisk Folkeparti" ] = "SFP"
-medlem$party[ medlem$partyname == "Socialdemokratiet" ] = "SD"
-medlem$party[ medlem$partyname == "Radikale Venstre" ] = "RV"
-medlem$party[ medlem$partyname == "Kristendemokraterne" ] = "KD"
-medlem$party[ medlem$partyname == "Liberal Alliance" ] = "LA"
-medlem$party[ medlem$partyname == "Venstre" ] = "V"
-medlem$party[ medlem$partyname == "Det Konservative Folkeparti" ] = "KFP"
-medlem$party[ medlem$partyname == "Dansk Folkeparti" ] = "DFP"
-medlem$party[ medlem$partyname == "Inuit Ataqatigiit" ] = "IA"
-medlem$party[ medlem$partyname == "Siumut" ] = "S"
-medlem$party[ medlem$partyname == "Sambandsflokkurin" ] = "SF"
-medlem$party[ medlem$partyname == "Javnaðarflokkurin" ] = "JF"
-medlem$party[ medlem$partyname == "Independent" ] = "IND"
+s$partyname = s$party
+s$party = c("Enhedslisten" = "E",
+            "Socialistisk Folkeparti" = "SFP",
+            "Socialdemokratiet" = "SD",
+            "Radikale Venstre" = "RV",
+            "Kristendemokraterne" = "KD",
+            "Liberal Alliance" = "LA",
+            "Venstre" = "V",
+            "Det Konservative Folkeparti" = "KFP",
+            "Dansk Folkeparti" = "DFP",
+            "Inuit Ataqatigiit" = "IA",
+            "Siumut" = "S",
+            "Sambandsflokkurin" = "SF",
+            "Javnaðarflokkurin" = "JF",
+            "Independent" = "IND")[ s$partyname ]
+
+# categorize bills
 
 cat("Found", nrow(read.csv("data/bills.csv")), "bills",
     nrow(read.csv("data/motions.csv")), "motions",
     nrow(read.csv("data/resolutions.csv")), "resolutions",
-    nrow(medlem), "MPs", nrow(d), "texts ")
+    nrow(s), "MPs", nrow(d), "texts ")
 
 d$n_au = 1 + str_count(d$links, ";")
 
