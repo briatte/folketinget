@@ -2,12 +2,25 @@ meta = c("Denmark", "Folketing")
 mode = "fruchtermanreingold"
 
 themes = c(2:4, # full legislatures, excluding the first (very incomplete) one
-           "Economy|Taxation|Consumer Affairs|Employment",
-           "Education|Science",
+           "Agriculture|Fisheries|Food|Land",
+           "Culture",
+           "Economy|Taxation|Trade|Consumer Affairs|Employment",
+           "Education|Science|Higher Education",
            "Environment|Energy|Climate|Transport",
-           "Justice|Interior", "Immigration|Integration",
-           "Welfare|Social Affairs|Social Security|Family|Children",
-           "Health")
+           "Foreign Affairs|Defence|Development",
+           "Health",
+           "Housing|Building",
+           "Immigration|Integration|Refugees",
+           "Institutional",
+           "Justice|Interior",
+           "Technology|Innovation",
+           "Welfare|Social Affairs|Social Security|Family|Children|Gender Equality")
+
+# Danish MPs can submit both bills or 'motions', i.e. bills that are
+# not fully drafted and that are quicker to submit; both are used in
+# the graphs. Resolutions do not have keywords (no ministerial area)
+# and are excluded from both types of graphs.
+d = subset(d, type != "resolution")
 
 for(ii in themes) { # rev(sort(unique(d$legislature)))
   
@@ -24,7 +37,7 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   data = subset(data, n_au > 1)
   
   cat(":", nrow(data), "cosponsored documents, ")
-  
+
   # check for missing sponsors
   u = unlist(strsplit(data$links, ";"))
   u = na.omit(u[ !u %in% s$url ])
