@@ -53,7 +53,7 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   # directed edge list
   #
   
-  edges = rbind_all(lapply(data$links, function(i) {
+  edges = bind_rows(lapply(data$links, function(i) {
     
     w = unlist(strsplit(i, ";"))
     d = s[ w, "name" ]

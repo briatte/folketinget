@@ -94,7 +94,7 @@ for(type in c("Beslutningsforslag", "Lovforslag", "Forslag_til_vedtagelse")) {
   
 }
 
-d = rbind_all(lapply(dir("data", pattern = "^(bills|motions|resolutions)\\.csv", full.names = TRUE),
+d = bind_rows(lapply(dir("data", pattern = "^(bills|motions|resolutions)\\.csv", full.names = TRUE),
                      read.csv, stringsAsFactors = FALSE))
 
 d$year[ nchar(d$year) > 7 ] = NA
