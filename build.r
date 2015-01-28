@@ -214,7 +214,8 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   
 }
 
-save(list = ls(pattern = "^(net|edges|bills)_dk\\d{4}$"), file = "data/net_dk.rda")
+save(list = ls(pattern = "^(net|edges|bills)_dk\\d{4}$"),
+     file = "data/net_dk.rda")
 
 # zip GEXF graphs (themes only)
 if(gexf)

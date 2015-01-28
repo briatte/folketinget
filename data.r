@@ -112,14 +112,14 @@ d$type = ifelse(grepl("-B", d$uid), "motion",
 
 # print(table(d$type, d$legislature, exclude = NULL))
 # print(table(d$year, d$legislature, exclude = NULL))
-cat("Scraped", nrow(d), "documents\n")
+cat("Scraped", nrow(d), "documents")
 
 # categorize bills
 
 d$n_au = 1 + str_count(d$links, ";")
 d = subset(d, !grepl("minister", d$authors, ignore.case = TRUE))
 
-cat(nrow(d), "MP bills", sum(d$n_au > 1), "cosponsored bills\n")
+cat(":", nrow(d), "MP bills", sum(d$n_au > 1), "cosponsored bills\n")
 
 d$theme = d$ministry
 d$theme[ d$ministry %in% c("Erhvervs- og Vækstministeriet", "Handels- og Udviklingsministeriet", "Økonomi- og Erhvervsministeriet",  "Økonomi- og Indenrigsministeriet", "Finansministeriet") ] = "Economy"
