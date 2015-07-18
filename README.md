@@ -48,6 +48,6 @@ The data contains three types of legislative items: "motions" (, "B"), "bills" (
 
 Note -- due to how missing sponsors are handled, the version of `sponsors.csv` that is saved to the `data` folder contains an intermediary version of the sponsors data. To retrieve the finalized dataset with the variables listed above, export the sponsors object `s` after running `data.r` in full.
 
-# CREDITS
+# THANKS
 
 Thanks to [Niels Erik Rasmussen](https://twitter.com/nilleren) and [Thomas Leeper](https://twitter.com/thosjleeper) for useful feedback on a preliminary version.
