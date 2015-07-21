@@ -1,7 +1,8 @@
 This repository contains code to build cosponsorship networks from bills (and motions) passed in the [Danish Parliament](http://www.ft.dk/).
 
-- [interactive demo](http://briatte.org/folketinget)
-- [static plots](http://briatte.org/folketinget/plots.html)
+- [interactive demo](http://f.briatte.org/parlviz/folketinget)
+- [static plots](http://f.briatte.org/parlviz/folketinget/plots.html)
+- [more countries](https://github.com/briatte/parlnet)
 
 # HOWTO
 
