@@ -99,8 +99,11 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   edges = merge(edges, aggregate(w ~ j, function(x) sum(1 / x), data = self))
   edges$gsw = edges$nfw / edges$w
   
+  # sanity check
+  stopifnot(edges$gsw <= 1)
+  
   # final edge set: cosponsor, first author, weights
-  edges = edges[, c("i", "j", "raw", "nfw", "gsw") ]
+  edges = select(edges, i, j, raw, nfw, gsw)
   
   cat(nrow(edges), "edges, ")
   
@@ -155,40 +158,30 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   n %v% "photo" = as.character(s[ network.vertex.names(n), "photo" ])
   n %v% "constituency" = as.character(s[ network.vertex.names(n), "constituency" ])
   
+	# unweighted degree
+	n %v% "degree" = degree(n)
+	q = n %v% "degree"
+	q = as.numeric(cut(q, unique(quantile(q)), include.lowest = TRUE))
+	
   set.edge.attribute(n, "source", as.character(edges[, 1])) # cosponsor
   set.edge.attribute(n, "target", as.character(edges[, 2])) # first author
   
   set.edge.attribute(n, "raw", edges$raw) # raw edge counts
   set.edge.attribute(n, "nfw", edges$nfw) # Newman-Fowler weights
   set.edge.attribute(n, "gsw", edges$gsw) # Gross-Shalizi weights
-  
-  #
-  # weighted measures
-  #
-  
-  n = get_modularity(n, weights = "raw")
-  n = get_modularity(n, weights = "nfw")
-  n = get_modularity(n, weights = "gsw")
-  
-  n = get_centrality(n, weights = "raw")
-  n = get_centrality(n, weights = "nfw")
-  n = get_centrality(n, weights = "gsw")
-  
+    
   #
   # network plot
   #
     
   if(plot) {
     
-    q = n %v% "degree"
-    q = as.numeric(cut(q, unique(quantile(q)), include.lowest = TRUE))
-    
-    ggnet_save(n, file = ifelse(nchar(ii) > 1,
+    save_plot(n, file = ifelse(nchar(ii) > 1,
                                 paste0("plots/net_dk", gsub("(\\w)\\|(.*)", "\\1", ii)),
                                 paste0("plots/net_dk", paste0(range(substr(data$year, 1, 4)), collapse = "-"))),
-               i = colors[ s[ n %e% "source", "party" ] ],
-               j = colors[ s[ n %e% "target", "party" ] ],
-               q, colors, order)
+              i = colors[ s[ n %e% "source", "party" ] ],
+              j = colors[ s[ n %e% "target", "party" ] ],
+              q, colors, order)
     
   }
   
@@ -209,8 +202,8 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   #
   
   if(gexf & nchar(ii) > 1)
-    get_gexf(paste0("net_dk", gsub("(\\w)\\|(.*)", "\\1", ii)),
-             n, meta, mode, colors, extra = "constituency")
+    save_gexf(paste0("net_dk", gsub("(\\w)\\|(.*)", "\\1", ii)),
+              n, meta, mode, colors, extra = "constituency")
   
 }
 
