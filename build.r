@@ -158,11 +158,11 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   n %v% "photo" = as.character(s[ network.vertex.names(n), "photo" ])
   n %v% "constituency" = as.character(s[ network.vertex.names(n), "constituency" ])
   
-	# unweighted degree
-	n %v% "degree" = degree(n)
-	q = n %v% "degree"
-	q = as.numeric(cut(q, unique(quantile(q)), include.lowest = TRUE))
-	
+  # unweighted degree
+  n %v% "degree" = degree(n)
+  q = n %v% "degree"
+  q = as.numeric(cut(q, unique(quantile(q)), include.lowest = TRUE))
+  
   set.edge.attribute(n, "source", as.character(edges[, 1])) # cosponsor
   set.edge.attribute(n, "target", as.character(edges[, 2])) # first author
   
