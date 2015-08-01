@@ -17,9 +17,9 @@ for(type in c("Beslutningsforslag", "Lovforslag", "Forslag_til_vedtagelse")) {
     
     data = data.frame()
     
-    for(i in rev(sort(c(paste0(2014:2004, 1), paste0(c(2004, 2007, 2010), 2))))) {
+    for(i in rev(sort(c(paste0(2014:2004, 1), paste0(c(2004, 2007, 2010, 2014), 2))))) {
       
-      file = paste0("raw/", name, i, ".html")
+      file = paste0("raw/bill-lists/", name, i, ".html")
       
       if(!file.exists(file))
         download.file(paste0("http://www.ft.dk/Dokumenter/Vis_efter_type/", type, ".aspx?session=", i, "&ministerArea=-1&proposer=&caseStatus=-1&startDate=&endDate=&dateRelatedActivity=&sortColumn=&sortOrder=&startRecord=&numberOfRecords=500&totalNumberOfRecords=#dok"),
@@ -32,7 +32,7 @@ for(type in c("Beslutningsforslag", "Lovforslag", "Forslag_til_vedtagelse")) {
       
       if(length(urls)) {
         
-        file = gsub("raw/", "data/", gsub("html$", "csv", file))
+        file = gsub("raw/bill-lists/", "data/", gsub("html$", "csv", file))
         
         links = data.frame()
         
@@ -41,7 +41,7 @@ for(type in c("Beslutningsforslag", "Lovforslag", "Forslag_til_vedtagelse")) {
         
         for(j in urls) {
           
-          doc = paste0("raw/", gsub("s$", "-", name), i, "-", 
+          doc = paste0("raw/bill-pages/", gsub("s$", "-", name), i, "-", 
                        gsub("(.*)/(.*)/index\\.htm", "\\2", j), ".html")
           
           if(!file.exists(doc))
@@ -175,7 +175,7 @@ s = data.frame()
 for(k in rev(u)) {
   
   # cat(sprintf("%3.0f", which(u == k)))
-  file = gsub("aspx$", "html", gsub("/Folketinget/findMedlem/", "raw/mp-", k))
+  file = gsub("aspx$", "html", gsub("/Folketinget/findMedlem/", "raw/mp-pages/mp-", k))
   
   if(!file.exists(file))
     try(download.file(paste0(root, k), file, mode = "wb", quiet = TRUE), silent = TRUE)
@@ -216,6 +216,9 @@ for(k in rev(u)) {
 # remove two strictly ministerial sponsors
 s = subset(s, func != "exmin")
 
+# remove duplicate row for Uffe Elbæk (coded as IND later)
+s = subset(s, url != "/Folketinget/findMedlem/RVUFEL.aspx")
+
 # special constituencies
 s$constituency[ grepl("Grønland", s$constituency) ] = "Grønland"
 s$constituency[ grepl("Færøerne", s$constituency) ] = "Færøerne"
@@ -236,9 +239,9 @@ s$sex[ !grepl("(D|d)atter af|(S|s)øn af", s$bio) ] = NA
 
 # fill in a few missing values
 s$sex[ is.na(s$sex) & 
-         grepl("^(Anne|Annika|Dorrit|Erika|Fatma|Ida|Karin|Linda|Lise|Lykke|Marlene|Mette|Mie|Sanne|Özlem Sara|Pia|Sofia|Stine)", s$name) ] = "F"
+         grepl("^(Anne|Annika|Dorrit|Erika|Eva\\s|Fatma|Helge|Ida|Karin|Linda|Lise|Lykke|Maria|Marlene|Mette|Mie|Sanne|Özlem Sara|Pia|Sofia|Stine|Susanne)", s$name) ] = "F"
 s$sex[ is.na(s$sex) & 
-         grepl("^(Erling|Eyvind|Hans|Jacob|Jens|Jeppe|Johs\\.|Jørgen|Kamal|Kuupik|Niels|Nikolaj|Per|Peter|Thomas|Uffe)", s$name) ] = "M"
+         grepl("^(Dan\\s|Erling|Eyvind|Hans|Jacob|Jens|Jeppe|Johs\\.|Jør(n\\s|gen)|Kamal|Kuupik|Nick|Niels|Nikolaj|Pelle|Per\\s|Peter|Søren|Thomas|Uffe)", s$name) ] = "M"
 
 s$born = str_extract(s$bio, "født [0-9\\.]+ [a-z\\.]+ \\d{4}")
 s$born = sapply(str_extract_all(s$born, "[0-9]{4}"), length)
@@ -253,7 +256,7 @@ write.csv(s, sponsors, row.names = FALSE)
 
 # download photos
 for(i in which(!is.na(s$photo))) {
-  photo = gsub("/Folketinget/findMedlem/(\\w+)\\.aspx", "photos/\\1.jpg", s$url[ i ])
+  photo = gsub("/Folketinget/findMedlem/(.*)\\.aspx", "photos/\\1.jpg", s$url[ i ])
   # special cases
   if(grepl("Thor Moger Pedersen", s$url[ i ]))   photo = "photos/scSFTMP.jpg"
   if(grepl("Charlotte Sahl-Madsen", s$url[ i ])) photo = "photos/scKFCSM.jpg"
@@ -287,6 +290,7 @@ s$party = c("Enhedslisten" = "E",
             "Siumut" = "S",
             "Sambandsflokkurin" = "SF",
             "Javnaðarflokkurin" = "JF",
+            "Alternativet" = "IND", # Green centre-left party by Uffe Elbæk
             "Independent" = "IND")[ s$partyname ]
 
 # done

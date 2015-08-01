@@ -76,8 +76,8 @@ comm = data.frame()
 
 # find unique committees
 
-stopifnot(s$file %in% dir("raw", pattern = "mp-\\w+\\.html$", full.names = TRUE))
-for(i in dir("raw", pattern = "mp-\\w+\\.html$", full.names = TRUE)) {
+stopifnot(s$file %in% list.files("raw/mp-pages", full.names = TRUE))
+for(i in list.files("raw/mp-pages", full.names = TRUE)) {
   
   h = htmlParse(i, encoding = "UTF-8")
   r = xpathSApply(h, "//strong[contains(text(), 'Parlamentarisk karriere')]/..", xmlValue)
@@ -94,16 +94,16 @@ comm = unique(comm) %>%
 comm = data.frame(committee = unique(comm$l), stringsAsFactors = FALSE)
 
 # add sponsor columns
-for(i in dir("raw", pattern = "mp-\\w+\\.html$", full.names = TRUE))
-  comm[, gsub("raw/mp-|\\.html", "", i) ] = 0
+for(i in list.files("raw/mp-pages", full.names = TRUE))
+  comm[, gsub("raw/mp-pages/mp-|\\.html", "", i) ] = 0
 
-for(i in dir("raw", pattern = "mp-\\w+\\.html$", full.names = TRUE)) {
+for(i in list.files("raw/mp-pages", full.names = TRUE)) {
   
   h = htmlParse(i, encoding = "UTF-8")
   r = xpathSApply(h, "//strong[contains(text(), 'Parlamentarisk karriere')]/..", xmlValue)
   l = get_committees(r)
 
-  comm[ comm$committee %in% l, names(comm) == gsub("raw/mp-|\\.html", "", i) ] = 1
+  comm[ comm$committee %in% l, names(comm) == gsub("raw/mp-pages/mp-|\\.html", "", i) ] = 1
   
 }
 
