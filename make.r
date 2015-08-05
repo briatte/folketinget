@@ -15,6 +15,15 @@ dir.create("raw"    , showWarnings = FALSE)
 
 plot = TRUE
 gexf = TRUE # thematic graphs only
+mode = "fruchtermanreingold"
+meta = c(
+  "cty" = "Denmark",
+  "lang" = "da", # Wikipedia language for chamber and constituencies
+  "ch" = "Folketinget",
+  "type" = "Unicameral",
+  "ipu" = 2087,
+  "seats" = 179
+)
 
 # build routine
 

@@ -17,6 +17,23 @@ colors = c(
   "IND" = "#AAAAAA"  #     - Independent, light grey
 )
 
+groups = c(
+  "E" = "Enhedslisten",
+  "SFP" = "Socialistisk Folkeparti",
+  "SD" = "Socialdemokratiet",
+  "RV" = "Radikale Venstre",
+  "KD" = "Kristendemokraterne",
+  "LA" = "Liberal Alliance",
+  "KFP" = "Det Konservative Folkeparti",
+  "V" = "Venstre",
+  "DFP" = "Dansk Folkeparti",
+  "IA" = "Inuit Ataqatigiit",
+  "S" = "Siumut",
+  "JF" = "Javnaðarflokkurin",
+  "SF" = "Sambandsflokkurin",
+  "IND" = "Independent" # incl. new Green centre-left party by Uffe Elbæk
+)
+
 # ParlGov Left/Right scores
 
 scores = c(
@@ -37,5 +54,6 @@ scores = c(
   "IND" = Inf
 )
 
+# note: keep Faroe Islands and Greenland at the end
+stopifnot(names(colors) == names(groups))
 stopifnot(names(colors) == names(scores))
-order = names(colors) # keep Faroe Islands and Greenland at the end

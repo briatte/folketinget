@@ -77,27 +77,27 @@ comm = data.frame()
 # find unique committees
 
 stopifnot(s$file %in% list.files("raw/mp-pages", full.names = TRUE))
-for(i in list.files("raw/mp-pages", full.names = TRUE)) {
+for (i in list.files("raw/mp-pages", full.names = TRUE)) {
   
   h = htmlParse(i, encoding = "UTF-8")
   r = xpathSApply(h, "//strong[contains(text(), 'Parlamentarisk karriere')]/..", xmlValue)
   l = get_committees(r)
 
-  if(length(l)) # ~ 20% MPs have no career details
-    comm = rbind(comm, data.frame(i, l, stringsAsFactors = FALSE))
+  if (length(l)) # ~ 20% MPs have no career details
+    comm = rbind(comm, data_frame(i, l))
   
 }
 
 comm = unique(comm) %>%
   arrange(l)
 
-comm = data.frame(committee = unique(comm$l), stringsAsFactors = FALSE)
+comm = data_frame(committee = unique(comm$l))
 
 # add sponsor columns
-for(i in list.files("raw/mp-pages", full.names = TRUE))
+for (i in list.files("raw/mp-pages", full.names = TRUE))
   comm[, gsub("raw/mp-pages/mp-|\\.html", "", i) ] = 0
 
-for(i in list.files("raw/mp-pages", full.names = TRUE)) {
+for (i in list.files("raw/mp-pages", full.names = TRUE)) {
   
   h = htmlParse(i, encoding = "UTF-8")
   r = xpathSApply(h, "//strong[contains(text(), 'Parlamentarisk karriere')]/..", xmlValue)
@@ -109,13 +109,13 @@ for(i in list.files("raw/mp-pages", full.names = TRUE)) {
 
 # no flat list to save, and committees are coded as identical for all legislatures
 
-for(i in ls(pattern = "^net_dk")) {
+for (i in ls(pattern = "^net_dk")) {
   
   cat("Network:", i)
   
   n = get(i)
   sp = network.vertex.names(n)
-  names(sp) = n %v% "url"
+  names(sp) = gsub("http://www.ft.dk/folketinget/findmedlem/|\\.aspx", "", n %v% "url")
   
   m = comm[, names(comm) %in% names(sp) ]
   cat(":", nrow(m), "committees", ncol(m), "MPs")
@@ -127,12 +127,10 @@ for(i in ls(pattern = "^net_dk")) {
   colnames(m) = sp[ colnames(m) ]
   rownames(m) = sp[ rownames(m) ]
   
-  e = data.frame(i = n %e% "source", 
-                 j = n %e% "target", 
-                 stringsAsFactors = FALSE)
+  e = data_frame(i = n %e% "source", j = n %e% "target")
   e$committee = NA
   
-  for(j in 1:nrow(e))
+  for (j in 1:nrow(e))
     e$committee[ j ] = m[ e$i[ j ], e$j[ j ] ]
   
   cat(" co-memberships:", 

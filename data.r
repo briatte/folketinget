@@ -6,22 +6,22 @@ legislature = c("2004-05" = 1, "2005-06" = 2, "2006-07" = 2,
 sponsors = "data/sponsors.csv"
 
 # also accepts "Forslag_til_vedtagelse" (resolutions)
-for(type in c("Beslutningsforslag", "Lovforslag", "Forslag_til_vedtagelse")) {
+for (type in c("Beslutningsforslag", "Lovforslag", "Forslag_til_vedtagelse")) {
   
   name = ifelse(type == "Beslutningsforslag", "motions", 
                 ifelse(type == "Forslag_til_vedtagelse", "resolutions",
                        "bills"))
   
   bills = paste0("data/", name, ".csv")
-  if(!file.exists(bills)) {
+  if (!file.exists(bills)) {
     
     data = data.frame()
     
-    for(i in rev(sort(c(paste0(2014:2004, 1), paste0(c(2004, 2007, 2010, 2014), 2))))) {
+    for (i in rev(sort(c(paste0(2014:2004, 1), paste0(c(2004, 2007, 2010, 2014), 2))))) {
       
       file = paste0("raw/bill-lists/", name, i, ".html")
       
-      if(!file.exists(file))
+      if (!file.exists(file))
         download.file(paste0("http://www.ft.dk/Dokumenter/Vis_efter_type/", type, ".aspx?session=", i, "&ministerArea=-1&proposer=&caseStatus=-1&startDate=&endDate=&dateRelatedActivity=&sortColumn=&sortOrder=&startRecord=&numberOfRecords=500&totalNumberOfRecords=#dok"),
                       file, mode = "wb", quiet = TRUE)
       
@@ -30,7 +30,7 @@ for(type in c("Beslutningsforslag", "Lovforslag", "Forslag_til_vedtagelse")) {
       urls = xpathSApply(h, "//tr[contains(@onmouseover, 'docListing')]/@onclick")
       urls = gsub("document.location=\\('|'\\);$", "", urls)
       
-      if(length(urls)) {
+      if (length(urls)) {
         
         file = gsub("raw/bill-lists/", "data/", gsub("html$", "csv", file))
         
@@ -39,15 +39,15 @@ for(type in c("Beslutningsforslag", "Lovforslag", "Forslag_til_vedtagelse")) {
         cat("Year", substr(i, 1, 4), "session", substr(i, 5, 5), ":",
             sprintf("%3.0f", length(urls)), gsub("s$", "(s)", name), "\n")
         
-        for(j in urls) {
+        for (j in urls) {
           
           doc = paste0("raw/bill-pages/", gsub("s$", "-", name), i, "-", 
                        gsub("(.*)/(.*)/index\\.htm", "\\2", j), ".html")
           
-          if(!file.exists(doc))
+          if (!file.exists(doc))
             try(download.file(paste0(root, j), doc, mode = "wb", quiet = TRUE), silent = TRUE)
           
-          if(!file.info(doc)$size) {
+          if (!file.info(doc)$size) {
             
             cat("failed:", paste0(root, j), "\n")
             file.remove(doc)
@@ -64,7 +64,7 @@ for(type in c("Beslutningsforslag", "Lovforslag", "Forslag_til_vedtagelse")) {
             v = h[ grepl("^Vedtagetd", h) ]
             v = paste0(v, h[ grepl("^Forkastet", h) ], collapse = ". ")
             
-            h = data.frame(title = t,
+            h = data_frame(title = t,
                            uid = gsub("/samling/(\\d+)/(vedtagelse|beslutningsforslag|lovforslag)/(L|B|V)(\\d+)/index.htm", "\\1-\\3\\4", j),
                            ministry = gsub("Ministerområde (.*)", "\\1", h[ grepl("Ministerområde", h) ]),
                            year = gsub("Samling: ([0-9-]+)(.*)", "\\1", h[ grepl("Samling", h) ]),
@@ -72,8 +72,7 @@ for(type in c("Beslutningsforslag", "Lovforslag", "Forslag_til_vedtagelse")) {
                            authors = ifelse(length(a), a, NA),
                            links = gsub("/Folketinget/findMedlem/|\\.aspx", "", l),
                            vote = ifelse(length(v), v, NA),
-                           summary = ifelse(length(s), s, NA), url = j,
-                           stringsAsFactors = FALSE)
+                           summary = ifelse(length(s), s, NA), url = j)
             
             links = rbind(links, h)
             
@@ -96,6 +95,9 @@ for(type in c("Beslutningsforslag", "Lovforslag", "Forslag_til_vedtagelse")) {
 
 d = bind_rows(lapply(dir("data", pattern = "^(bills|motions|resolutions)\\.csv", full.names = TRUE),
                      read.csv, stringsAsFactors = FALSE))
+
+# drop one faulty bill (by a minister)
+d = d[ !d$links == "jorn-neergaard-larsen", ]
 
 d$year[ nchar(d$year) > 7 ] = NA
 
@@ -164,7 +166,7 @@ d$theme[ d$ministry == "Handels- og europaministeriet" ] = "Trade,EU"
 
 u = unique(na.omit(unlist(strsplit(d$links, ";"))))
 u = gsub("\\s", "%20", paste0("/Folketinget/findMedlem/", u, ".aspx"))
-cat("Parsing", length(u), "sponsors\n")
+cat("Parsing", length(u), "sponsors...\n")
 
 s = data.frame()
 
@@ -172,15 +174,15 @@ s = data.frame()
 # h = htmlParse("http://www.ft.dk/Folketinget/searchResults.aspx?letter=ALLE&pageSize=500&pageNr=")
 # xpathSApply(h, "//a[contains(@href, '/findMedlem/')]/@href")
 
-for(k in rev(u)) {
+for (k in rev(u)) {
   
   # cat(sprintf("%3.0f", which(u == k)))
   file = gsub("aspx$", "html", gsub("/Folketinget/findMedlem/", "raw/mp-pages/mp-", k))
   
-  if(!file.exists(file))
+  if (!file.exists(file))
     try(download.file(paste0(root, k), file, mode = "wb", quiet = TRUE), silent = TRUE)
   
-  if(!file.info(file)$size) {
+  if (!file.info(file)$size) {
     
     cat(": failed", paste0(root, k), "\n")
     file.remove(file)
@@ -196,18 +198,18 @@ for(k in rev(u)) {
     constit = gsub("(.*)\\si\\s(.*)(\\s(Amts|Stor)kreds)(.*)", "\\2\\3", constit)
     
     img = xpathSApply(h, "//img[contains(@src, '/media/')]/@src")
-    s = rbind(s,
-              data.frame(file,
-                         name = xpathSApply(h, "//meta[@name='Fullname']/@content"),
-                         func = xpathSApply(h, "//meta[@name='Function']/@content"),
-                         party = xpathSApply(h, "//meta[@name='Party']/@content"),
-                         mandate = xpathSApply(h, "//meta[@name='MfPeriod']/@content"),
-                         constituency = ifelse(length(constit), constit, NA),
-                         job = xpathSApply(h, "//div[contains(@class, 'person')]/p[2]/strong", xmlValue),
-                         photo = ifelse(length(img), img, NA),
-                         url = k,
-                         bio = xpathSApply(h, "//div[contains(@class, 'tabContent')]/p[1]", xmlValue),
-                         stringsAsFactors = FALSE))
+    s = rbind(s, data_frame(
+			file,
+      name = xpathSApply(h, "//meta[@name='Fullname']/@content"),
+      func = xpathSApply(h, "//meta[@name='Function']/@content"),
+      party = xpathSApply(h, "//meta[@name='Party']/@content"),
+      mandate = xpathSApply(h, "//meta[@name='MfPeriod']/@content"),
+      constituency = ifelse(length(constit), constit, NA),
+      job = xpathSApply(h, "//div[contains(@class, 'person')]/p[2]/strong", xmlValue),
+      photo = ifelse(length(img), img, NA),
+      url = k,
+      bio = xpathSApply(h, "//div[contains(@class, 'tabContent')]/p[1]", xmlValue)
+		))
     
   }
   
@@ -219,12 +221,32 @@ s = subset(s, func != "exmin")
 # remove duplicate row for Uffe Elbæk (coded as IND later)
 s = subset(s, url != "/Folketinget/findMedlem/RVUFEL.aspx")
 
+# ==============================================================================
+# CHECK CONSTITUENCIES
+# ==============================================================================
+
 # special constituencies
 s$constituency[ grepl("Grønland", s$constituency) ] = "Grønland"
 s$constituency[ grepl("Færøerne", s$constituency) ] = "Færøerne"
 
 # convert to Wikipedia Dansk handles
 s$constituency = gsub("\\s", "_", s$constituency)
+
+cat("Checking constituencies,", sum(is.na(s$constituency)), "missing...\n")
+for (i in na.omit(unique(s$constituency))) {
+  
+  g = GET(paste0("https://", meta[ "lang"], ".wikipedia.org/wiki/", i))
+  
+  if (status_code(g) != 200)
+    cat("Missing Wikipedia entry:", i, "\n")
+  
+  g = xpathSApply(htmlParse(g), "//title", xmlValue)
+  g = gsub("(.*) - Wikipedia(.*)", "\\1", g)
+  
+  if (gsub("\\s", "_", g) != i)
+    cat("Discrepancy:", g, "(WP) !=", i ,"(data)\n")
+  
+}
 
 s$mandate = sapply(s$mandate, function(x) {
   x = str_extract_all(x, "[0-9]{4}")
@@ -248,6 +270,7 @@ s$born = sapply(str_extract_all(s$born, "[0-9]{4}"), length)
 s$born[ s$born != 1 ] = 0
 s$born[ s$born == 1 ] = str_extract(s$bio[ s$born == 1 ], "[0-9]{4}")
 s$born[ s$born == 0 ] = NA
+s$born = as.integer(s$born)
 
 s$party[ is.na(s$party) | s$party %in% c("", "Indep") ] = "Independent"
 s$party[ s$party == "Ny Alliance" ] = "Liberal Alliance"
@@ -255,20 +278,20 @@ s$party[ s$party == "Ny Alliance" ] = "Liberal Alliance"
 write.csv(s, sponsors, row.names = FALSE)
 
 # download photos
-for(i in which(!is.na(s$photo))) {
+for (i in 1:nrow(s)) {
   photo = gsub("/Folketinget/findMedlem/(.*)\\.aspx", "photos/\\1.jpg", s$url[ i ])
   # special cases
-  if(grepl("Thor Moger Pedersen", s$url[ i ]))   photo = "photos/scSFTMP.jpg"
-  if(grepl("Charlotte Sahl-Madsen", s$url[ i ])) photo = "photos/scKFCSM.jpg"
-  if(!file.exists(photo) | !file.info(photo)$size) {
+  if (grepl("Thor Moger Pedersen", s$url[ i ]))   photo = "photos/scSFTMP.jpg"
+  if (grepl("Charlotte Sahl-Madsen", s$url[ i ])) photo = "photos/scKFCSM.jpg"
+  if (!file.exists(photo) | !file.info(photo)$size) {
     try(download.file(paste0(root, "/Folketinget/findMedlem/", gsub("\\s", "%20", s$photo[ i ])),
                       photo, mode = "wb", quiet = TRUE), silent = TRUE)
   }
-  if(!file.exists(photo) | !file.info(photo)$size) {
+  if (!file.exists(photo) | !file.info(photo)$size) {
     file.remove(photo) # will warn if missing
     s$photo[ i ] = NA
   } else {
-    s$photo[ i ] = gsub("photos/|.jpg$", "", photo)
+    s$photo[ i ] = photo
   }
 }
 
@@ -276,21 +299,45 @@ s$url = gsub("/Folketinget/findMedlem/|\\.aspx", "", s$url)
 s$url = gsub("\\s", "%20", s$url)
 rownames(s) = s$url
 
-s$partyname = s$party
-s$party = c("Enhedslisten" = "E",
-            "Socialistisk Folkeparti" = "SFP",
-            "Socialdemokratiet" = "SD",
-            "Radikale Venstre" = "RV",
-            "Kristendemokraterne" = "KD",
-            "Liberal Alliance" = "LA",
-            "Venstre" = "V",
-            "Det Konservative Folkeparti" = "KFP",
-            "Dansk Folkeparti" = "DFP",
-            "Inuit Ataqatigiit" = "IA",
-            "Siumut" = "S",
-            "Sambandsflokkurin" = "SF",
-            "Javnaðarflokkurin" = "JF",
-            "Alternativet" = "IND", # Green centre-left party by Uffe Elbæk
-            "Independent" = "IND")[ s$partyname ]
+# translating to abbreviations (for consistency)
+s$party[ s$party == "Enhedslisten" ] = "E"
+s$party[ s$party == "Socialistisk Folkeparti" ] = "SFP"
+s$party[ s$party == "Socialdemokratiet" ] = "SD"
+s$party[ s$party == "Radikale Venstre" ] = "RV"
+s$party[ s$party == "Kristendemokraterne" ] = "KD"
+s$party[ s$party == "Liberal Alliance" ] = "LA"
+s$party[ s$party == "Venstre" ] = "V"
+s$party[ s$party == "Det Konservative Folkeparti" ] = "KFP"
+s$party[ s$party == "Dansk Folkeparti" ] = "DFP"
+s$party[ s$party == "Inuit Ataqatigiit" ] = "IA"
+s$party[ s$party == "Siumut" ] = "S"
+s$party[ s$party == "Sambandsflokkurin" ] = "SF"
+s$party[ s$party == "Javnaðarflokkurin" ] = "JF"
+s$party[ s$party == "Alternativet" ] = "IND" # Green centre-left party by Uffe Elbæk
+s$party[ s$party == "Independent" ] = "IND"
+stopifnot(!is.na(groups[ s$party ])) # no chance this fails
+
+# ============================================================================
+# QUALITY CONTROL
+# ============================================================================
+
+# - might be missing: born (int of length 4), constituency (chr),
+#   photo (chr, folder/file.ext)
+# - never missing: sex (chr, F/M), nyears (int), url (chr, URL),
+#   party (chr, mapped to colors)
+
+cat("Missing", sum(is.na(s$born)), "years of birth\n")
+stopifnot(is.integer(s$born) & nchar(s$born) == 4 | is.na(s$born))
+
+cat("Missing", sum(is.na(s$constituency)), "constituencies\n")
+stopifnot(is.character(s$constituency))
+
+cat("Missing", sum(is.na(s$photo)), "photos\n")
+stopifnot(is.character(s$photo) & grepl("^photos(_\\w{2})?/(.*)\\.\\w{3}", s$photo) | is.na(s$photo))
+
+stopifnot(!is.na(s$sex) & s$sex %in% c("F", "M"))
+# stopifnot(!is.na(s$nyears) & is.integer(s$nyears)) # computed on the fly
+# stopifnot(!is.na(s$url) & grepl("^http(s)?://(.*)", s$url)) # used as uids
+stopifnot(s$party %in% names(colors))
 
 # done

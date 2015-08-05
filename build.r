@@ -1,6 +1,3 @@
-meta = c("Denmark", "Folketing")
-mode = "fruchtermanreingold"
-
 themes = c(2:4, # full legislatures, excluding the first (very incomplete) one
            "Agriculture|Fisheries|Food|Land",
            "Culture",
@@ -22,14 +19,14 @@ themes = c(2:4, # full legislatures, excluding the first (very incomplete) one
 # and are excluded from both types of graphs.
 d = subset(d, type != "resolution")
 
-for(ii in themes) { # rev(sort(unique(d$legislature)))
+for (ii in themes) { # rev(sort(unique(d$legislature)))
   
   cat(ifelse(nchar(ii) > 1, ii, c("1" = "2001-2004", # not used, missing 3 years
                                   "2" = "2005-2007", 
                                   "3" = "2007-2011",
                                   "4" = "2011-2015")[ ii ]))
   
-  if(nchar(ii) > 1)
+  if (nchar(ii) > 1)
     data = subset(d, grepl(ii, theme))
   else
     data = subset(d, legislature == ii)
@@ -41,7 +38,7 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   # check for missing sponsors
   u = unlist(strsplit(data$links, ";"))
   u = na.omit(u[ !u %in% s$url ])
-  if(length(u)) {
+  if (length(u)) {
     cat("Missing", length(u), "sponsors:")
     print(table(u))
   }
@@ -53,7 +50,7 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   # directed edge list
   #
   
-  edges = bind_rows(lapply(data$links, function(i) {
+  edges = lapply(data$links, function(i) {
     
     w = unlist(strsplit(i, ";"))
     d = s[ w, "name" ]
@@ -62,7 +59,7 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
     
     return(data.frame(d, w = length(w) - 1)) # number of cosponsors
     
-  }))
+  }) %>% bind_rows
   
   #
   # edge weights
@@ -90,10 +87,10 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   edges = aggregate(w ~ ij, function(x) sum(1 / x), data = edges)
   
   # expand to edge list
-  edges = data.frame(i = gsub("(.*)///(.*)", "\\1", edges$ij),
+  edges = data_frame(i = gsub("(.*)///(.*)", "\\1", edges$ij),
                      j = gsub("(.*)///(.*)", "\\2", edges$ij),
                      raw = as.vector(raw[ edges$ij ]), # raw edge counts
-                     nfw = edges$w, stringsAsFactors = FALSE)
+                     nfw = edges$w)
   
   # Gross-Shalizi weights (weighted propensity to cosponsor)
   edges = merge(edges, aggregate(w ~ j, function(x) sum(1 / x), data = self))
@@ -113,13 +110,24 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   
   n = network(edges[, 1:2 ], directed = TRUE)
   
-  n %n% "country" = meta[1]
-  n %n% "title" = paste(meta[2], paste0(range(unique(substr(data$year, 1, 4))),
-                                        collapse = " to "))
-  
-  n %n% "n_bills" = nrow(data)
+  n %n% "country" = meta[ "cty" ] %>% as.character
+  n %n% "lang" = meta[ "lang" ] %>% as.character
   
   if(nchar(ii) > 1)
+    n %n% "years" = c("1" = "2001-2004", # not used, missing 3 years
+                      "2" = "2005-2007", 
+                      "3" = "2007-2011",
+                      "4" = "2011-2015")[ ii ] %>% as.character
+  
+  n %n% "legislature" = NA
+  n %n% "chamber" = meta[ "ch" ] %>% as.character
+  n %n% "type" = meta[ "type" ] %>% as.character
+  n %n% "ipu" = meta[ "ipu" ] %>% as.integer
+  n %n% "seats" = meta[ "seats" ] %>% as.integer
+  
+  n %n% "n_cosponsored" = nrow(data)
+  
+  if (nchar(ii) > 1)
     n %n% "n_sponsors" = table(subset(d, grepl(ii, theme))$n_au)
   else
     n %n% "n_sponsors" = table(subset(d, legislature == ii)$n_au)
@@ -136,32 +144,28 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   
   rownames(s) = s$name
   
-  n %v% "born" = as.numeric(s[ network.vertex.names(n), "born" ])
-  n %v% "sex" = as.character(s[ network.vertex.names(n), "sex" ])
+  n %v% "born" = s[ network.vertex.names(n), "born" ]
+  n %v% "sex" = s[ network.vertex.names(n), "sex" ]
   
-  if(nchar(ii) == 1) {
+  if (nchar(ii) == 1) {
     
     s$nyears = sapply(s$mandate, function(x) {
       sum(unlist(strsplit(x, ";")) <= 
             min(substr(names(legislature)[ legislature == ii ], 1, 4)))
     })
     
-    n %v% "nyears" = s[ network.vertex.names(n), "nyears" ]
+    n %v% "nyears" = s[ network.vertex.names(n), "nyears" ] %>% as.integer
     # print(table(n %v% "nyears"))
     
   }
   
-  n %v% "party" = as.character(s[ network.vertex.names(n), "party" ])
-  n %v% "partyname" = as.character(s[ network.vertex.names(n), "partyname" ])
-  n %v% "lr" = as.numeric(scores[ n %v% "party" ])
-  n %v% "url" = as.character(s[ network.vertex.names(n), "url" ])
-  n %v% "photo" = as.character(s[ network.vertex.names(n), "photo" ])
-  n %v% "constituency" = as.character(s[ network.vertex.names(n), "constituency" ])
-  
-  # unweighted degree
-  n %v% "degree" = degree(n)
-  q = n %v% "degree"
-  q = as.numeric(cut(q, unique(quantile(q)), include.lowest = TRUE))
+  n %v% "party" = s[ network.vertex.names(n), "party" ]
+  n %v% "partyname" = groups[ n %v% "party" ] %>% as.character
+  n %v% "lr" = scores[ n %v% "party" ] %>% as.numeric
+  n %v% "url" = paste0("http://www.ft.dk/folketinget/findmedlem/",
+                       s[ network.vertex.names(n), "url" ], ".aspx")
+  n %v% "photo" = s[ network.vertex.names(n), "photo" ]
+  n %v% "constituency" = s[ network.vertex.names(n), "constituency" ]
   
   set.edge.attribute(n, "source", as.character(edges[, 1])) # cosponsor
   set.edge.attribute(n, "target", as.character(edges[, 2])) # first author
@@ -174,14 +178,14 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   # network plot
   #
     
-  if(plot) {
+  if (plot) {
     
-    save_plot(n, file = ifelse(nchar(ii) > 1,
-                                paste0("plots/net_dk", gsub("(\\w)\\|(.*)", "\\1", ii)),
-                                paste0("plots/net_dk", paste0(range(substr(data$year, 1, 4)), collapse = "-"))),
+    save_plot(n, ifelse(nchar(ii) > 1,
+                        paste0("plots/net_dk", gsub("(\\w)\\|(.*)", "\\1", ii)),
+                        paste0("plots/net_dk", paste0(range(substr(data$year, 1, 4)), collapse = "-"))),
               i = colors[ s[ n %e% "source", "party" ] ],
               j = colors[ s[ n %e% "target", "party" ] ],
-              q, colors, order)
+              mode, colors)
     
   }
   
@@ -189,7 +193,7 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   # save objects (legislatures only)
   #
   
-  if(nchar(ii) == 1) {
+  if (nchar(ii) == 1) {
     
     assign(paste0("net_dk", substr(min(data$year), 1, 4)), n)
     assign(paste0("edges_dk", substr(min(data$year), 1, 4)), edges)
@@ -201,9 +205,8 @@ for(ii in themes) { # rev(sort(unique(d$legislature)))
   # export gexf (themes only)
   #
   
-  if(gexf & nchar(ii) > 1)
-    save_gexf(paste0("net_dk", gsub("(\\w)\\|(.*)", "\\1", ii)),
-              n, meta, mode, colors, extra = "constituency")
+  if (gexf & nchar(ii) > 1)
+    save_gexf(n, paste0("net_dk", gsub("(\\w)\\|(.*)", "\\1", ii)), mode, colors)
   
 }
 
@@ -211,5 +214,5 @@ save(list = ls(pattern = "^(net|edges|bills)_dk\\d{4}$"),
      file = "data/net_dk.rda")
 
 # zip GEXF graphs (themes only)
-if(gexf)
+if (gexf)
   zip("net_dk.zip", dir(pattern = "^net_\\w+\\.gexf$"))
