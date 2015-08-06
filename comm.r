@@ -71,8 +71,7 @@ get_committees <- function(x) {
   
 }
 
-load("data/net_dk.rda")
-comm = data.frame()
+comm = data_frame()
 
 # find unique committees
 
@@ -152,6 +151,3 @@ for (i in ls(pattern = "^net_dk")) {
   assign(paste0("co", i), nn)
   
 }
-
-save(list = ls(pattern = "^((co)?net|edges|bills)_dk\\d{4}$"),
-     file = "data/net_dk.rda")

@@ -339,5 +339,3 @@ stopifnot(!is.na(s$sex) & s$sex %in% c("F", "M"))
 # stopifnot(!is.na(s$nyears) & is.integer(s$nyears)) # computed on the fly
 # stopifnot(!is.na(s$url) & grepl("^http(s)?://(.*)", s$url)) # used as uids
 stopifnot(s$party %in% names(colors))
-
-# done

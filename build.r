@@ -46,9 +46,9 @@ for (ii in themes) { # rev(sort(unique(d$legislature)))
   # reset row names (changed when setting vertex attributes)
   rownames(s) = s$url
   
-  #
-  # directed edge list
-  #
+  # ============================================================================
+  # DIRECTED EDGE LIST
+  # ============================================================================
   
   edges = lapply(data$links, function(i) {
     
@@ -61,9 +61,9 @@ for (ii in themes) { # rev(sort(unique(d$legislature)))
     
   }) %>% bind_rows
   
-  #
-  # edge weights
-  #
+  # ============================================================================
+  # EDGE WEIGHTS
+  # ============================================================================
   
   # first author self-loops, with counts of cosponsors
   self = subset(edges, i == j)
@@ -104,9 +104,9 @@ for (ii in themes) { # rev(sort(unique(d$legislature)))
   
   cat(nrow(edges), "edges, ")
   
-  #
-  # directed network
-  #
+  # ============================================================================
+  # DIRECTED NETWORK
+  # ============================================================================
   
   n = network(edges[, 1:2 ], directed = TRUE)
   
@@ -131,8 +131,13 @@ for (ii in themes) { # rev(sort(unique(d$legislature)))
     n %n% "n_sponsors" = table(subset(d, grepl(ii, theme))$n_au)
   else
     n %n% "n_sponsors" = table(subset(d, legislature == ii)$n_au)
-  
+
+  # ============================================================================
+  # VERTEX-LEVEL ATTRIBUTES
+  # ============================================================================
+
   n_au = as.vector(n_au[ network.vertex.names(n) ])
+
   n %v% "n_au" = ifelse(is.na(n_au), 0, n_au)
   
   n_co = as.vector(n_co[ network.vertex.names(n) ])
@@ -174,9 +179,9 @@ for (ii in themes) { # rev(sort(unique(d$legislature)))
   set.edge.attribute(n, "nfw", edges$nfw) # Newman-Fowler weights
   set.edge.attribute(n, "gsw", edges$gsw) # Gross-Shalizi weights
     
-  #
-  # network plot
-  #
+  # ============================================================================
+  # SAVE PLOTS
+  # ============================================================================
     
   if (plot) {
     
@@ -189,9 +194,9 @@ for (ii in themes) { # rev(sort(unique(d$legislature)))
     
   }
   
-  #
-  # save objects (legislatures only)
-  #
+  # ============================================================================
+  # SAVE OBJECTS (legislatures only)
+  # ============================================================================
   
   if (nchar(ii) == 1) {
     
@@ -201,17 +206,14 @@ for (ii in themes) { # rev(sort(unique(d$legislature)))
     
   }
   
-  #
-  # export gexf (themes only)
-  #
+  # ============================================================================
+  # SAVE GEXF (themes only)
+  # ============================================================================
   
   if (gexf & nchar(ii) > 1)
     save_gexf(n, paste0("net_dk", gsub("(\\w)\\|(.*)", "\\1", ii)), mode, colors)
   
 }
-
-save(list = ls(pattern = "^(net|edges|bills)_dk\\d{4}$"),
-     file = "data/net_dk.rda")
 
 # zip GEXF graphs (themes only)
 if (gexf)
