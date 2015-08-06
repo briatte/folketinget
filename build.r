@@ -44,8 +44,8 @@ for (ii in themes) { # rev(sort(unique(d$legislature)))
   }
   
   # reset row names (changed when setting vertex attributes)
-  rownames(s) = s$url
-  
+  s = data.frame(s, row.names = s$url)
+
   # ============================================================================
   # DIRECTED EDGE LIST
   # ============================================================================
