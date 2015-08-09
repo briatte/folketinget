@@ -7,55 +7,55 @@ sponsors = "data/sponsors.csv"
 
 # also accepts "Forslag_til_vedtagelse" (resolutions)
 for (type in c("Beslutningsforslag", "Lovforslag", "Forslag_til_vedtagelse")) {
-  
-  name = ifelse(type == "Beslutningsforslag", "motions", 
+
+  name = ifelse(type == "Beslutningsforslag", "motions",
                 ifelse(type == "Forslag_til_vedtagelse", "resolutions",
                        "bills"))
-  
+
   bills = paste0("data/", name, ".csv")
   if (!file.exists(bills)) {
-    
+
     data = data.frame()
-    
+
     for (i in rev(sort(c(paste0(2014:2004, 1), paste0(c(2004, 2007, 2010, 2014), 2))))) {
-      
+
       file = paste0("raw/bill-lists/", name, i, ".html")
-      
+
       if (!file.exists(file))
         download.file(paste0("http://www.ft.dk/Dokumenter/Vis_efter_type/", type, ".aspx?session=", i, "&ministerArea=-1&proposer=&caseStatus=-1&startDate=&endDate=&dateRelatedActivity=&sortColumn=&sortOrder=&startRecord=&numberOfRecords=500&totalNumberOfRecords=#dok"),
                       file, mode = "wb", quiet = TRUE)
-      
+
       h = htmlParse(file)
-      
+
       urls = xpathSApply(h, "//tr[contains(@onmouseover, 'docListing')]/@onclick")
       urls = gsub("document.location=\\('|'\\);$", "", urls)
-      
+
       if (length(urls)) {
-        
+
         file = gsub("raw/bill-lists/", "data/", gsub("html$", "csv", file))
-        
+
         links = data.frame()
-        
+
         cat("Year", substr(i, 1, 4), "session", substr(i, 5, 5), ":",
             sprintf("%3.0f", length(urls)), gsub("s$", "(s)", name), "\n")
-        
+
         for (j in urls) {
-          
-          doc = paste0("raw/bill-pages/", gsub("s$", "-", name), i, "-", 
+
+          doc = paste0("raw/bill-pages/", gsub("s$", "-", name), i, "-",
                        gsub("(.*)/(.*)/index\\.htm", "\\2", j), ".html")
-          
+
           if (!file.exists(doc))
             try(download.file(paste0(root, j), doc, mode = "wb", quiet = TRUE), silent = TRUE)
-          
+
           if (!file.info(doc)$size) {
-            
+
             cat("failed:", paste0(root, j), "\n")
             file.remove(doc)
-            
+
           } else {
-            
+
             h = htmlParse(doc)
-            
+
             t = str_clean(xpathSApply(h, "//h1[1]", xmlValue))
             l = paste0(str_clean(xpathSApply(h, "//a[contains(@href, 'findMedlem')]/@href")), collapse = ";")
             h = str_clean(xpathSApply(h, "//p", xmlValue))
@@ -63,7 +63,7 @@ for (type in c("Beslutningsforslag", "Lovforslag", "Forslag_til_vedtagelse")) {
             s = gsub("Resumé (.*)", "\\1", h[ grepl("Resumé", h) ])
             v = h[ grepl("^Vedtagetd", h) ]
             v = paste0(v, h[ grepl("^Forkastet", h) ], collapse = ". ")
-            
+
             h = data_frame(title = t,
                            uid = gsub("/samling/(\\d+)/(vedtagelse|beslutningsforslag|lovforslag)/(L|B|V)(\\d+)/index.htm", "\\1-\\3\\4", j),
                            ministry = gsub("Ministerområde (.*)", "\\1", h[ grepl("Ministerområde", h) ]),
@@ -73,24 +73,24 @@ for (type in c("Beslutningsforslag", "Lovforslag", "Forslag_til_vedtagelse")) {
                            links = gsub("/Folketinget/findMedlem/|\\.aspx", "", l),
                            vote = ifelse(length(v), v, NA),
                            summary = ifelse(length(s), s, NA), url = j)
-            
+
             links = rbind(links, h)
-            
+
           }
-          
+
         }
-        
+
         data = rbind(data, links)
-        
+
       }
-      
+
     }
-    
+
     cat(nrow(data), name, "saved\n")
     write.csv(data, bills, row.names = FALSE)
-    
+
   }
-  
+
 }
 
 d = bind_rows(lapply(dir("data", pattern = "^(bills|motions|resolutions)\\.csv", full.names = TRUE),
@@ -175,31 +175,31 @@ s = data.frame()
 # xpathSApply(h, "//a[contains(@href, '/findMedlem/')]/@href")
 
 for (k in rev(u)) {
-  
+
   # cat(sprintf("%3.0f", which(u == k)))
   file = gsub("aspx$", "html", gsub("/Folketinget/findMedlem/", "raw/mp-pages/mp-", k))
-  
+
   if (!file.exists(file))
     try(download.file(paste0(root, k), file, mode = "wb", quiet = TRUE), silent = TRUE)
-  
+
   if (!file.info(file)$size) {
-    
+
     cat(": failed", paste0(root, k), "\n")
     file.remove(file)
-    
+
   } else {
-    
+
     h = htmlParse(file)
     # cat(":", file, ":",
     #     gsub("Folketinget - ", "",
     #          str_clean(xpathSApply(h, "//title", xmlValue))), "\n")
-    
+
     constit = xpathSApply(h, "//strong[text()='Medlemsperiode']/..", xmlValue)
     constit = gsub("(.*)\\si\\s(.*)(\\s(Amts|Stor)kreds)(.*)", "\\2\\3", constit)
-    
+
     img = xpathSApply(h, "//img[contains(@src, '/media/')]/@src")
     s = rbind(s, data_frame(
-			file,
+      file,
       name = xpathSApply(h, "//meta[@name='Fullname']/@content"),
       func = xpathSApply(h, "//meta[@name='Function']/@content"),
       party = xpathSApply(h, "//meta[@name='Party']/@content"),
@@ -209,10 +209,10 @@ for (k in rev(u)) {
       photo = ifelse(length(img), img, NA),
       url = k,
       bio = xpathSApply(h, "//div[contains(@class, 'tabContent')]/p[1]", xmlValue)
-		))
-    
+    ))
+
   }
-  
+
 }
 
 # remove two strictly ministerial sponsors
@@ -234,18 +234,18 @@ s$constituency = gsub("\\s", "_", s$constituency)
 
 cat("Checking constituencies,", sum(is.na(s$constituency)), "missing...\n")
 for (i in na.omit(unique(s$constituency))) {
-  
+
   g = GET(paste0("https://", meta[ "lang"], ".wikipedia.org/wiki/", i))
-  
+
   if (status_code(g) != 200)
     cat("Missing Wikipedia entry:", i, "\n")
-  
+
   g = xpathSApply(htmlParse(g), "//title", xmlValue)
   g = gsub("(.*) - Wikipedia(.*)", "\\1", g)
-  
+
   if (gsub("\\s", "_", g) != i)
     cat("Discrepancy:", g, "(WP) !=", i ,"(data)\n")
-  
+
 }
 
 s$mandate = sapply(s$mandate, function(x) {
@@ -260,9 +260,9 @@ s$sex = ifelse(grepl("(D|d)atter af", s$sex), "F", "M")
 s$sex[ !grepl("(D|d)atter af|(S|s)øn af", s$bio) ] = NA
 
 # fill in a few missing values
-s$sex[ is.na(s$sex) & 
+s$sex[ is.na(s$sex) &
          grepl("^(Anne|Annika|Dorrit|Erika|Eva\\s|Fatma|Helge|Ida|Karin|Linda|Lise|Lykke|Maria|Marlene|Mette|Mie|Sanne|Özlem Sara|Pia|Sofia|Stine|Susanne)", s$name) ] = "F"
-s$sex[ is.na(s$sex) & 
+s$sex[ is.na(s$sex) &
          grepl("^(Dan\\s|Erling|Eyvind|Hans|Jacob|Jens|Jeppe|Johs\\.|Jør(n\\s|gen)|Kamal|Kuupik|Nick|Niels|Nikolaj|Pelle|Per\\s|Peter|Søren|Thomas|Uffe)", s$name) ] = "M"
 
 s$born = str_extract(s$bio, "født [0-9\\.]+ [a-z\\.]+ \\d{4}")
