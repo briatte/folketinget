@@ -17,7 +17,10 @@ dir.create("photos", showWarnings = FALSE)
 if (file.exists("raw.zip"))
   unzip("raw.zip")
 
-dir.create("raw", showWarnings = FALSE)
+dir.create("raw"            , showWarnings = FALSE)
+dir.create("raw/bill-lists" , showWarnings = FALSE)
+dir.create("raw/bill-pages" , showWarnings = FALSE)
+dir.create("raw/mp-pages"   , showWarnings = FALSE)
 
 # parameters
 

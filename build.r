@@ -211,7 +211,9 @@ for (ii in themes) { # rev(sort(unique(d$legislature)))
   # ============================================================================
   
   if (gexf & nchar(ii) > 1)
-    save_gexf(n, paste0("net_dk", gsub("(\\w)\\|(.*)", "\\1", ii)), mode, colors)
+    save_gexf(n, paste0("net_dk", gsub("\\s", "_",
+                                       gsub("(\\w)\\|(.*)", "\\1", ii))),
+              mode, colors)
   
 }
 

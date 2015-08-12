@@ -174,7 +174,8 @@ s = data.frame()
 # h = htmlParse("http://www.ft.dk/Folketinget/searchResults.aspx?letter=ALLE&pageSize=500&pageNr=")
 # xpathSApply(h, "//a[contains(@href, '/findMedlem/')]/@href")
 
-for (k in rev(u)) {
+# skipping over faulty page
+for (k in rev(u[ u != "/Folketinget/findMedlem/RVUFEL.aspx" ])) {
 
   # cat(sprintf("%3.0f", which(u == k)))
   file = gsub("aspx$", "html", gsub("/Folketinget/findMedlem/", "raw/mp-pages/mp-", k))
@@ -217,9 +218,6 @@ for (k in rev(u)) {
 
 # remove two strictly ministerial sponsors
 s = subset(s, func != "exmin")
-
-# remove duplicate row for Uffe Elbæk (coded as IND later)
-s = subset(s, url != "/Folketinget/findMedlem/RVUFEL.aspx")
 
 # ==============================================================================
 # CHECK CONSTITUENCIES
@@ -279,20 +277,26 @@ write.csv(s, sponsors, row.names = FALSE)
 
 # download photos
 for (i in 1:nrow(s)) {
+  
+  if (is.na(s$photo[ i ]))
+    next
+  
   photo = gsub("/Folketinget/findMedlem/(.*)\\.aspx", "photos/\\1.jpg", s$url[ i ])
-  # special cases
-  if (grepl("Thor Moger Pedersen", s$url[ i ]))   photo = "photos/scSFTMP.jpg"
-  if (grepl("Charlotte Sahl-Madsen", s$url[ i ])) photo = "photos/scKFCSM.jpg"
-  if (!file.exists(photo) | !file.info(photo)$size) {
-    try(download.file(paste0(root, "/Folketinget/findMedlem/", gsub("\\s", "%20", s$photo[ i ])),
-                      photo, mode = "wb", quiet = TRUE), silent = TRUE)
+
+  if (!file.exists(photo)) {
+    
+    h = try(GET(paste0(root, "/Folketinget/findMedlem/", gsub("\\s", "%20", s$photo[ i ]))))
+    
+    if (h$headers$`content-type` == "image/jpeg")
+      writeBin(content(h, "raw"), photo)
+    
   }
-  if (!file.exists(photo) | !file.info(photo)$size) {
-    file.remove(photo) # will warn if missing
-    s$photo[ i ] = NA
-  } else {
+  
+  if (file.exists(photo))
     s$photo[ i ] = photo
-  }
+  else
+    s$photo[ i ] = NA
+  
 }
 
 s$url = gsub("/Folketinget/findMedlem/|\\.aspx", "", s$url)
@@ -314,6 +318,7 @@ s$party[ s$party == "Siumut" ] = "S"
 s$party[ s$party == "Sambandsflokkurin" ] = "SF"
 s$party[ s$party == "Javnaðarflokkurin" ] = "JF"
 s$party[ s$party == "Alternativet" ] = "IND" # Green centre-left party by Uffe Elbæk
+s$party[ s$party == "Tjóðveldi" ] = "IND" # Faroese party, Høgni Hoydal
 s$party[ s$party == "Independent" ] = "IND"
 stopifnot(!is.na(groups[ s$party ])) # no chance this fails
 
