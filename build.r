@@ -113,7 +113,7 @@ for (ii in themes) { # rev(sort(unique(d$legislature)))
   n %n% "country" = meta[ "cty" ] %>% as.character
   n %n% "lang" = meta[ "lang" ] %>% as.character
   
-  if(nchar(ii) == 1)
+  if (nchar(ii) == 1)
     n %n% "years" = c("1" = "2001-2004", # not used, missing 3 years
                       "2" = "2005-2007", 
                       "3" = "2007-2011",
