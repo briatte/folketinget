@@ -1,4 +1,4 @@
-themes = c(2:4, # full legislatures, excluding the first (very incomplete) one
+themes = c(5:1, # full legislatures except 1 (2004) and 5 (2015)
            "Agriculture|Fisheries|Food|Land",
            "Culture",
            "Economy|Taxation|Trade|Consumer Affairs|Employment",
@@ -19,12 +19,20 @@ themes = c(2:4, # full legislatures, excluding the first (very incomplete) one
 # and are excluded from both types of graphs.
 d = subset(d, type != "resolution")
 
+# avoid duplicate
+d$links = gsub("ELRULU", "rune-lund", d$links)
+s = subset(s, url != "ELRULU")
+
+# fix URL issue
+d$links = gsub("Rasmus Vestergaard Madsen", "Rasmus%20Vestergaard%20Madsen", d$links)
+
 for (ii in themes) { # rev(sort(unique(d$legislature)))
   
-  cat(ifelse(nchar(ii) > 1, ii, c("1" = "2001-2004", # not used, missing 3 years
+  cat(ifelse(nchar(ii) > 1, ii, c("1" = "2001-2004", # missing 3 years
                                   "2" = "2005-2007", 
                                   "3" = "2007-2011",
-                                  "4" = "2011-2015")[ ii ]))
+                                  "4" = "2011-2015",
+                                  "5" = "2015-2016")[ ii ])) # missing ? years
   
   if (nchar(ii) > 1)
     data = subset(d, grepl(ii, theme))

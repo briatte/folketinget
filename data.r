@@ -1,12 +1,13 @@
 root = "http://www.ft.dk"
 legislature = c("2004-05" = 1, "2005-06" = 2, "2006-07" = 2,
                 "2007-08" = 3, "2008-09" = 3, "2009-10" = 3, "2010-11" = 3,
-                "2011-12" = 4, "2012-13" = 4, "2013-14" = 4, "2014-15" = 4)
+                "2011-12" = 4, "2012-13" = 4, "2013-14" = 4, "2014-15" = 4,
+                "2015-16" = 5)
 
 sponsors = "data/sponsors.csv"
 
 # also accepts "Forslag_til_vedtagelse" (resolutions)
-for (type in c("Beslutningsforslag", "Lovforslag", "Forslag_til_vedtagelse")) {
+for (type in c("Beslutningsforslag", "Lovforslag")) {
 
   name = ifelse(type == "Beslutningsforslag", "motions",
                 ifelse(type == "Forslag_til_vedtagelse", "resolutions",
@@ -17,7 +18,7 @@ for (type in c("Beslutningsforslag", "Lovforslag", "Forslag_til_vedtagelse")) {
 
     data = data.frame()
 
-    for (i in rev(sort(c(paste0(2014:2004, 1), paste0(c(2004, 2007, 2010, 2014), 2))))) {
+    for (i in rev(sort(c(paste0(2015:2004, 1), paste0(c(2004, 2007, 2010, 2014), 2))))) {
 
       file = paste0("raw/bill-lists/", name, i, ".html")
 
@@ -259,9 +260,9 @@ s$sex[ !grepl("(D|d)atter af|(S|s)øn af", s$bio) ] = NA
 
 # fill in a few missing values
 s$sex[ is.na(s$sex) &
-         grepl("^(Anne|Annika|Dorrit|Erika|Eva\\s|Fatma|Helge|Ida|Karin|Linda|Lise|Lykke|Maria|Marlene|Mette|Mie|Sanne|Özlem Sara|Pia|Sofia|Stine|Susanne)", s$name) ] = "F"
+         grepl("^(Anne|Annika|Dorrit|Erika|Eva\\s|Fatma|Helge|Ida|Karin|Linda|Lise|Lykke|Maria|Marlene|Mette|Mie|Sanne|Özlem Sara|Pia|Sofia|Stine|Susanne|Trine)", s$name) ] = "F"
 s$sex[ is.na(s$sex) &
-         grepl("^(Dan\\s|Erling|Eyvind|Hans|Jacob|Jens|Jeppe|Johs\\.|Jør(n\\s|gen)|Kamal|Kuupik|Nick|Niels|Nikolaj|Pelle|Per\\s|Peter|Søren|Thomas|Uffe)", s$name) ] = "M"
+         grepl("^(Dan\\s|Erling|Eyvind|Hans|Ja(c|k)ob|Jens|Jeppe|Jesper|Johs\\.|Jør(n\\s|gen)|Kamal|Kuupik|Nick|Niels|Nikolaj|Pelle|Per\\s|Peter|Rasmus|Søren|Thomas|Uffe)", s$name) ] = "M"
 
 s$born = str_extract(s$bio, "født [0-9\\.]+ [a-z\\.]+ \\d{4}")
 s$born = sapply(str_extract_all(s$born, "[0-9]{4}"), length)
