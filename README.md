@@ -8,17 +8,15 @@ This repository contains code to build cosponsorship networks from bills (and mo
 
 Replicate by running `make.r` in R.
 
-The `data.r` script downloads information on bills and sponsors. The code is pretty straightforward and excludes only a handful of bills for which the scraper gets the columns wrong. It should furthermore be easy to update the scraper past _samling_ 2014/1, which is currently the last considered.
+The `data.r` script downloads information on bills and sponsors. The code is pretty straightforward and excludes only a handful of bills for which the scraper gets the columns wrong.
 
 The `build.r` script then assembles the edge lists and plots the networks, with the help of a few routines coded into `functions.r`. Adjust the `plot`, `gexf` and `mode` parameters to skip the plots or to change the node placement algorithm.
-
-Note -- because modularity tends to increase with the number of parties, the scores are likely to be inflated by the presence of regionalist parties for the Faroe Islands and for Greenland. Excluding them from the computations, however, removes their non-trivial structural positions from the graphs.
 
 # DATA
 
 ## Bills
 
-The data contains three types of legislative items: "motions" (, "B"), "bills" (, "L"), and resolutions (, "V"). Only the first two are passed to the network building routine (resolutions are nonbinding). The networks are not radically different if resolutions are included.
+The data contains three types of legislative items: "motions" (_Beslutningsforslag_, "B"), "bills" (_Lovforslag_, "L"), and resolutions (*Forslag_til_vedtagelse*, "V"). Only the first two are passed to the network building routine (resolutions are nonbinding). The networks are not radically different if resolutions are included.
 
 - `title` -- bill title
 - `uid` -- a unique identifier of the form "YYYYS-TNN"
@@ -47,8 +45,8 @@ The data contains three types of legislative items: "motions" (, "B"), "bills" (
 - `photo` -- photo URL, shortened to its unique identifier (identical to `url` or missing)
 - `bio` -- short sponsor biography
 
-Note -- due to how missing sponsors are handled, the version of `sponsors.csv` that is saved to the `data` folder contains an intermediary version of the sponsors data. To retrieve the finalized dataset with the variables listed above, export the sponsors object `s` after running `data.r` in full.
+Note -- due to how missing sponsors are handled, the version of `sponsors.csv` that is saved to the `data` folder contains only an intermediary version of the sponsors data. To retrieve the finalized dataset with the variables listed above, export the sponsors object `s` after running `data.r` in full.
 
 # THANKS
 
-Thanks to [Niels Erik Rasmussen](https://twitter.com/nilleren) and [Thomas Leeper](https://twitter.com/thosjleeper) for useful feedback on a preliminary version.
+Thanks to [Niels Erik Rasmussen](https://twitter.com/nilleren) and [Thomas Leeper](https://twitter.com/thosjleeper) for useful feedback on a preliminary version of the code.
