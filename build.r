@@ -26,13 +26,15 @@ s = subset(s, url != "ELRULU")
 # fix URL issue
 d$links = gsub("Rasmus Vestergaard Madsen", "Rasmus%20Vestergaard%20Madsen", d$links)
 
+yrs = c("1" = "2001-2004", # missing 3 years
+  "2" = "2005-2007", 
+  "3" = "2007-2011",
+  "4" = "2011-2015",
+  "5" = "2015-2019") # missing ? years
+
 for (ii in themes) { # rev(sort(unique(d$legislature)))
   
-  cat(ifelse(nchar(ii) > 1, ii, c("1" = "2001-2004", # missing 3 years
-                                  "2" = "2005-2007", 
-                                  "3" = "2007-2011",
-                                  "4" = "2011-2015",
-                                  "5" = "2015-2016")[ ii ])) # missing ? years
+  cat(ifelse(nchar(ii) > 1, ii, yrs[ ii ]))
   
   if (nchar(ii) > 1)
     data = subset(d, grepl(ii, theme))
@@ -122,10 +124,7 @@ for (ii in themes) { # rev(sort(unique(d$legislature)))
   n %n% "lang" = meta[ "lang" ] %>% as.character
   
   if (nchar(ii) == 1)
-    n %n% "years" = c("1" = "2001-2004", # not used, missing 3 years
-                      "2" = "2005-2007", 
-                      "3" = "2007-2011",
-                      "4" = "2011-2015")[ ii ] %>% as.character
+    n %n% "years" = yrs[ ii ] %>% as.character
   
   n %n% "legislature" = NA
   n %n% "chamber" = meta[ "ch" ] %>% as.character
